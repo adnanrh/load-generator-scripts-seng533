@@ -2,4 +2,4 @@
 
 jmeter tests should be run with the following parameters:
 
-./jmeter -n -t <.jmx file path> -JusersA=<number of class A users> -JusersB=<number of class B users> -JusersC=<number of class C users> -Jduration=<test duration in seconds> -l testresults.jtl
+./jmeter -n -t <.jmx file path> -JusersA=<num A users> -JusersB=<num B users> -JusersC=<num C users> -Jduration=<test duration in seconds> -l testresults.jtl
