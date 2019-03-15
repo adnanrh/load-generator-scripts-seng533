@@ -141,7 +141,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">usersA_response.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -179,7 +179,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">usersA_summary.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -346,7 +346,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">usersB_response.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -384,7 +384,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">usersB_summary.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -551,7 +551,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">usersC_response.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -589,11 +589,11 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename"></stringProp>
+          <stringProp name="filename">usersC_summary.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Command Line Parameters" enabled="true">
         <collectionProp name="Arguments.arguments">
           <elementProp name="number_of_users_A" elementType="Argument">
             <stringProp name="Argument.name">number_of_users_A</stringProp>
