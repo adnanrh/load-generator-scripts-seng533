@@ -8,47 +8,30 @@ import time
 
 # Parse arguments
 parser = ArgumentParser()
-parser.add_argument('boundaries', metavar=('cpu upper', 'disk upper'), type=int, nargs=2,
-                    help="Supply cpu upper, disk upper bound (0-100)")
-args = parser.parse_args()
+parser.add_argument('boundaries',
+                    metavar=('start time', 'end time', 'sample_period'),
+                    type=int, nargs=3,
+                    help="Supply start time, end time, and sample period")
+args = parser.parse_args() # hint - this crashes if you provide 0 args
 
-cpu_upper = args.boundaries[0]
-cpu_lower = cpu_upper * 0.8
-disk_upper = args.boundaries[1]
-disk_lower = disk_upper * 0.8
-
-# Setup AWS resources
+# set global variables
+start_time = args.boundaries[0] # ms since epoch
+end_time = args.boundaries[1] # ms since epoch
+sample_period = args.boundaries[2] # seconds
 region = "us-west-1"
 
+# Setup AWS resources
 ec2 = boto3.resource('ec2', region_name=region)
 cloudwatch = boto3.resource('cloudwatch', region_name=region)
 cloudwatch_client = boto3.client('cloudwatch', region_name=region)
 ec2_client = boto3.client('ec2', region_name=region)
 
-period_sec = 30
-window_minutes = 4
-
-
-def get_mean(data_points):
+def get_logs():
     """
-    Get the mean value for input data points. Expects the key 'Average' to exist for each data point.
-    """
-    if len(data_points) == 0:
-        return 0
-
-    sum = 0
-    for data_point in data_points:
-        sum = sum + data_point['Average']
-    avg = sum / len(data_points)
-
-    return avg
-
-def run_scaling_notifier():
-    """
+    Gets logs for cpu, disk, and memory utilization, plus some info about
+    network use
 
     """
-    start_time = datetime.utcnow() - timedelta(minutes=window_minutes)
-    end_time = datetime.utcnow()
 
     # Fetch running instances from PicSiteASG autoscaling group
     instances = ec2.instances.filter(
@@ -67,6 +50,7 @@ def run_scaling_notifier():
 
             if response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
                 instance_id_list.append(instance.id)
+
     print('instances founds: ' + str(instance_id_list))
 
     # Check if no running instances found
@@ -74,10 +58,10 @@ def run_scaling_notifier():
         print("No running & ready instances found!")
         return
 
-    max_cpu_avg = 0
-    max_cpu_util = 0
-    max_disk_avg = 0
-    max_disk_util = 0
+    cpu_responses = []
+    disk_responses = []
+    mem_responses = [] # mem_used_percent
+    network_responses = [] # NetworkOut
 
     for instance_id in instance_id_list:
         # Take maximum utilization for a single cpu for each instance.
@@ -109,7 +93,7 @@ def run_scaling_notifier():
                 MetricName='cpu_usage_idle',
                 StartTime=start_time,
                 EndTime=end_time,
-                Period=period_sec,
+                Period=sample_period,
                 Statistics=[
                     'Average'
                 ],
@@ -117,8 +101,9 @@ def run_scaling_notifier():
             )
             if cpu_response:
                 # 'Idle Percent * 100' -> 'Util Percent'
-                avg = (100 - get_mean(cpu_response['Datapoints'])) / 100
-                max_cpu_util = max(max_cpu_util, avg)
+                responses = [(100 - util_val['Average']) / 100 for
+                        util_val in cpu_response['Datapoints']]
+                cpu_responses.append(responses)
 
         # Take maximum utilization for the disk for each instance.
         disk_response = cloudwatch_client.get_metric_statistics(
@@ -148,7 +133,7 @@ def run_scaling_notifier():
             MetricName='diskio_io_time',
             StartTime=start_time,
             EndTime=end_time,
-            Period=period_sec,
+            Period=sample_period,
             Statistics=[
                 'Average'
             ],
@@ -157,41 +142,72 @@ def run_scaling_notifier():
 
         if disk_response:
             # 'Milliseconds' -> 'Util Percent'
-            avg = get_mean(disk_response['Datapoints']) / 1000 / period_sec
-            max_disk_util = max(max_disk_util, avg)
+            responses = [response['Average'] / 1000 / sample_period for
+                    response in disk_response['Datapoints']]
+            disk_responses.append(responses)
 
-    print("Max CPU Utilization: " + str(max_cpu_util))
-    print("Max Disk Utilization: " + str(max_disk_util))
+        mem_response = cloudwatch_client.get_metric_statistics(
+            Namespace='CWAgent',
+            Dimensions=[
+                {
+                    'Name': 'AutoScalingGroupName',
+                    'Value': 'PicSiteASG'
+                },
+                {
+                    'Name': 'ImageId',
+                    'Value': 'ami-0bdd1b937142e6961'
+                },
+                {
+                    'Name': 'InstanceId',
+                    'Value': '{}'.format(instance_id)
+                },
+                {
+                    'Name': 'InstanceType',
+                    'Value': 'm4.large'
+                }
+            ],
+            MetricName='mem_used_percent',
+            StartTime=start_time,
+            EndTime=end_time,
+            Period=sample_period,
+            Statistics=[
+                'Average'
+            ],
+            Unit='Percent'
+        )
 
-    # Calculate target based on upper and lower bounds
-    if max_cpu_util >= cpu_upper or max_disk_util >= disk_upper:
-        target = 1
-    elif len(instance_id_list) <= 1 or max_cpu_util > cpu_lower or max_disk_util > disk_lower:
-        target = 0.5
-    else:
-        target = 0
+        if mem_response:
+            responses = [response['Average'] for response in mem_response['Datapoints']]
+            mem_responses.append(responses)
 
-    print("Target: " + str(target))
 
-    # Send target value
-    response = cloudwatch_client.put_metric_data(
-        Namespace='PicSiteASG',
-        MetricData=[
-            {
-                'MetricName': 'Target',
-                'Dimensions': [
-                    {
-                        'Name': 'AutoScalingGroupName',
-                        'Value': 'PicSiteASG'
-                    },
-                ],
-                'Timestamp': datetime.utcnow(),
-                'Value': target,
-                'Unit': 'None',
-            },
-        ]
-    )
+        # unlike above, this doesnt seem to work unless very few dimensions are
+        # passed in
+        network_response = cloudwatch_client.get_metric_statistics(
+            Namespace='AWS/EC2',
+            Dimensions=[
+                {
+                    'Name': 'InstanceId',
+                    'Value': '{}'.format(instance_id)
+                }
+            ],
+            MetricName='NetworkOut',
+            StartTime=start_time,
+            EndTime=end_time,
+            Period=sample_period,
+            Statistics=[
+                'Average'
+            ]
+        )
 
-while True:
-    run_scaling_notifier()
-    time.sleep(1)
+        if network_response:
+            responses = [response['Average'] for response in network_response['Datapoints']]
+            network_responses.append(responses)
+
+    print("CPU Utilization values: \n",cpu_responses)
+    print("Disk responses: \n", disk_responses)
+    print("Mem responses: \n", mem_responses)
+    print("Network responses: \n", network_responses)
+
+if __name__ == "__main__":
+    get_logs()

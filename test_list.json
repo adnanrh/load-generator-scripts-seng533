@@ -1,0 +1,122 @@
+[
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 20,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 80,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 20,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 80,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 50,
+        "image_size": 1,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "None",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 50,
+        "image_size": 1,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "Dynamic",
+        "cpu_utilization_param": 20,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "Dynamic",
+        "cpu_utilization_param": 50,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    },
+    {
+        "test_duration": 600,
+        "autoscaling_value": "Dynamic",
+        "cpu_utilization_param": 80,
+        "disk_utilization_param": 50,
+        "image_size": 5,
+        "num_users_a": 16,
+        "num_users_b": 40,
+        "num_users_c": 8
+    }
+]
