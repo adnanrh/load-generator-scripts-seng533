@@ -9,10 +9,10 @@ num_tests=$(cat test_list.json | jq "length")
 
 
 # ********************************************************************** 'main'
-for i in $(seq 1 $num_tests) ; do
+for i in $(seq 0 $(expr $num_tests - 1)) ; do
 
     # read in test params from list of tests
-    # autoscaling_value=$(cat test_list.json | jq ".[$i].autoscaling_value")
+    asg_type=$(cat test_list.json | jq ".[$i].autoscaling_value")
     cpu_max=$(cat test_list.json | jq ".[$i].cpu_utilization_param")
     disk_max=$(cat test_list.json | jq ".[$i].disk_utilization_param")
     duration=$(cat test_list.json | jq ".[1].test_duration")
@@ -37,11 +37,22 @@ for i in $(seq 1 $num_tests) ; do
     ready="nope"
     while [ "$ready" = "nope" ]
     do
-        group=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names PicSiteASG)
+        group=$(aws autoscaling describe-auto-scaling-groups \
+                --auto-scaling-group-names PicSiteASG \
+                --region us-west-1)
+        group_len=$(echo "$group" | jq ".AutoScalingGroups[0].Instances | length")
 
-        if [ $(echo "$group" | jq ".AutoScalingGroups[0].Instances | length") = 1 ]
+        if [ "${group_len}" = 1 ]
         then
-            ready="true"
+            instance_id=$(echo $group | jq -r .AutoScalingGroups[0].Instances[0].InstanceId)
+            status=$(aws ec2 describe-instance-status \
+                    --instance-id ${instance_id} \
+                    --region us-west-1)
+            actual_status=$(echo $status | jq -r .InstanceStatuses[0].InstanceStatus.Status)
+            if [ "${actual_status}" = "ok" ]
+            then
+                ready="true"
+            fi
         fi
     done
 
@@ -64,7 +75,18 @@ for i in $(seq 1 $num_tests) ; do
     kill ${alarm_monitor_script_pid} # seems to be global
 
     # get our logs
-    ./get-logs.py "${start_time}" "${end_time}" "${period}"
+    ./get-logs.py "$i" \
+            "${start_time}" \
+            "${end_time}" \
+            "${period}" \
+            "${asg_type}" \
+            "${cpu_max}" \
+            "${disk_max}" \
+            "${duration}" \
+            "${image_size}" \
+            "${num_users_a}" \
+            "${num_users_b}" \
+            "${num_users_c}"
 done
 
 
