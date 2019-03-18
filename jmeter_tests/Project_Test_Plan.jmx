@@ -34,11 +34,11 @@
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.domain">PicSiteAppLB-1885823884.us-west-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">${load_balancer_dns}</stringProp>
             <stringProp name="HTTPSampler.port"></stringProp>
             <stringProp name="HTTPSampler.protocol"></stringProp>
             <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-            <stringProp name="HTTPSampler.path">/static/images/random_image_1mb_${rand_num_user1}.bmp</stringProp>
+            <stringProp name="HTTPSampler.path">/static/images/random_image_${image_size}mb_${rand_num_user1}.bmp</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -239,11 +239,11 @@
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.domain">PicSiteAppLB-1885823884.us-west-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">${load_balancer_dns}</stringProp>
             <stringProp name="HTTPSampler.port"></stringProp>
             <stringProp name="HTTPSampler.protocol"></stringProp>
             <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-            <stringProp name="HTTPSampler.path">/static/images/random_image_1mb_${rand_num_user2}.bmp</stringProp>
+            <stringProp name="HTTPSampler.path">/static/images/random_image_${image_size}mb_${rand_num_user2}.bmp</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -444,11 +444,11 @@
             <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
               <collectionProp name="Arguments.arguments"/>
             </elementProp>
-            <stringProp name="HTTPSampler.domain">PicSiteAppLB-1885823884.us-west-1.elb.amazonaws.com</stringProp>
+            <stringProp name="HTTPSampler.domain">${load_balancer_dns}</stringProp>
             <stringProp name="HTTPSampler.port"></stringProp>
             <stringProp name="HTTPSampler.protocol"></stringProp>
             <stringProp name="HTTPSampler.contentEncoding"></stringProp>
-            <stringProp name="HTTPSampler.path">/static/images/random_image_1mb_${rand_num_user3}.bmp</stringProp>
+            <stringProp name="HTTPSampler.path">/static/images/random_image_${image_size}mb_${rand_num_user3}.bmp</stringProp>
             <stringProp name="HTTPSampler.method">GET</stringProp>
             <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
             <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
@@ -612,6 +612,18 @@
             <stringProp name="Argument.name">test_duration</stringProp>
             <stringProp name="Argument.value">${__P(duration, 600)}</stringProp>
             <stringProp name="Argument.desc">Duration of tests. Number of users will be ramped up to in this duration.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="load_balancer_dns" elementType="Argument">
+            <stringProp name="Argument.name">load_balancer_dns</stringProp>
+            <stringProp name="Argument.value">${__P(LoadBalancerDNS)}</stringProp>
+            <stringProp name="Argument.desc">Load Balancer DNS.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="image_size" elementType="Argument">
+            <stringProp name="Argument.name">image_size</stringProp>
+            <stringProp name="Argument.value">${__P(ImageSize, 1)}</stringProp>
+            <stringProp name="Argument.desc">Image size to request.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
