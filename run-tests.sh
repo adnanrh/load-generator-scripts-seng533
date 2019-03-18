@@ -33,7 +33,7 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
         --max-size 5 \
         --desired-capacity 1
 
-    # wait until the group is ready TODO
+    # wait until the group is ready
     ready="nope"
     while [ "$ready" = "nope" ]
     do
