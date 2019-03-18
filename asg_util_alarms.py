@@ -13,9 +13,9 @@ parser.add_argument('boundaries', metavar=('cpu upper', 'disk upper'), type=int,
 args = parser.parse_args()
 
 cpu_upper = args.boundaries[0]
-cpu_lower = cpu_upper * 0.8
+cpu_lower = cpu_upper * 0.5
 disk_upper = args.boundaries[1]
-disk_lower = disk_upper * 0.8
+disk_lower = disk_upper * 0.5
 
 # Setup AWS resources
 region = "us-west-1"

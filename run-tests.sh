@@ -65,8 +65,10 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
         -JusersA="${num_users_a}" \
         -JusersB=="${num_users_b}" \
         -JusersC=="${num_users_c}" \
-        -Jduration= -l \
+        -Jduration="${duration}" \
         -JLoadBalancerDNS=${load_balancer_dns_name} \
+        -JImageSize=${image_size} \
+        -l \
         testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
 
