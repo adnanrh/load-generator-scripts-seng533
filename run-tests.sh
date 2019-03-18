@@ -90,9 +90,6 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
 done
 
 
-# do something with output
-
-
 
 # ******************************************************************** clean up
 # scale down & disable autoscaling
