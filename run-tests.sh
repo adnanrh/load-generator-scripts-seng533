@@ -5,7 +5,7 @@
 # **************************************************************** 'initialize'
 period=30 # used by get-logs.py
 num_tests=$(cat test_list.json | jq "length")
-
+load_balancer_dns_name="$1"
 
 
 # ********************************************************************** 'main'
@@ -66,6 +66,7 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
         -JusersB=="${num_users_b}" \
         -JusersC=="${num_users_c}" \
         -Jduration= -l \
+        -JLoadBalancerDNS=${load_balancer_dns_name} \
         testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
 
