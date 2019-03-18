@@ -68,8 +68,7 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
         -Jduration="${duration}" \
         -JLoadBalancerDNS=${load_balancer_dns_name} \
         -JImageSize=${image_size} \
-        -l \
-        testresults.jtl
+        -l testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
 
 
