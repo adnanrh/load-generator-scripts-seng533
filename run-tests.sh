@@ -63,8 +63,8 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
     /home/ubuntu/apache-jmeter-5.1/bin/jmeter -n \
         -t jmeter_tests/Project_Test_Plan.jmx \
         -JusersA="${num_users_a}" \
-        -JusersB=="${num_users_b}" \
-        -JusersC=="${num_users_c}" \
+        -JusersB="${num_users_b}" \
+        -JusersC="${num_users_c}" \
         -Jduration="${duration}" \
         -JLoadBalancerDNS=${load_balancer_dns_name} \
         -JImageSize=${image_size} \
