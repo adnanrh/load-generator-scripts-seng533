@@ -1,0 +1,6 @@
+# Idea project
+.idea/
+
+# Python virtual environment
+venv/
+wvenv/

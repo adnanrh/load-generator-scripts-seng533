@@ -1,15 +1,23 @@
 #!/bin/bash
 
+alarm_monitor_script_pid=
 
+exit_fn () {
+    trap SIGINT             # Restore signal handling for SIGINT
+    if ! [[ "alarm_monitor_script_pid" = "" ]]
+    then
+        kill ${alarm_monitor_script_pid}
+    fi
+    exit                    # Then exit script.
+}
 
 # **************************************************************** 'initialize'
 period=30 # used by get-logs.py
 num_tests=$(cat test_list.json | jq "length")
 load_balancer_dns_name="$1"
 
-
 # ********************************************************************** 'main'
-for i in $(seq 0 $(expr $num_tests - 1)) ; do
+for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # read in test params from list of tests
     asg_type=$(cat test_list.json | jq ".[$i].autoscaling_value")
@@ -21,11 +29,12 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
     num_users_b=$(cat test_list.json | jq ".[$i].num_users_b")
     num_users_c=$(cat test_list.json | jq ".[$i].num_users_c")
 
-    # setup autoscale monitor script and track pid to kill it later
-    ./asg_util_alarms.py "$cpu_max" "$disk_max" &
+    # setup auto-scaling monitor script and track pid to kill it later
+    trap 'exit_fn' SIGINT
+    python3 asg_util_alarms.py "$cpu_max" "$disk_max" &
     alarm_monitor_script_pid=$!
 
-    # init autoscaling group
+    # init auto-scaling group
     aws autoscaling update-auto-scaling-group \
         --region us-west-1 \
         --auto-scaling-group-name PicSiteASG \
@@ -35,31 +44,29 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
 
     # wait until the group is ready
     ready="nope"
-    while [ "$ready" = "nope" ]
+    while [[ "$ready" = "nope" ]]
     do
         group=$(aws autoscaling describe-auto-scaling-groups \
                 --auto-scaling-group-names PicSiteASG \
                 --region us-west-1)
         group_len=$(echo "$group" | jq ".AutoScalingGroups[0].Instances | length")
 
-        if [ "${group_len}" = 1 ]
+        if [[ "${group_len}" = 1 ]]
         then
-            instance_id=$(echo $group | jq -r .AutoScalingGroups[0].Instances[0].InstanceId)
+            instance_id=$(echo ${group} | jq -r .AutoScalingGroups[0].Instances[0].InstanceId)
             status=$(aws ec2 describe-instance-status \
                     --instance-id ${instance_id} \
                     --region us-west-1)
-            actual_status=$(echo $status | jq -r .InstanceStatuses[0].InstanceStatus.Status)
-            if [ "${actual_status}" = "ok" ]
+            actual_status=$(echo ${status} | jq -r .InstanceStatuses[0].InstanceStatus.Status)
+            if [[ "${actual_status}" = "ok" ]]
             then
                 ready="true"
             fi
         fi
     done
 
-
-
+    # run JMeter
     start_time=$(date +%s) # ms since epoch utc
-    # run jmeter
     /home/ubuntu/apache-jmeter-5.1/bin/jmeter -n \
         -t jmeter_tests/Project_Test_Plan.jmx \
         -JusersA="${num_users_a}" \
@@ -71,36 +78,28 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
         -l testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
 
-
-
-    # stop autoscale monitoring script since it needs new params for next test
+    # stop auto-scaling monitoring script since it needs new params for next test
+    trap SIGINT
     kill ${alarm_monitor_script_pid} # seems to be global
 
     # get our logs
     ./get-logs.py "$i" \
-            "${start_time}" \
-            "${end_time}" \
-            "${period}" \
-            "${asg_type}" \
-            "${cpu_max}" \
-            "${disk_max}" \
-            "${duration}" \
-            "${image_size}" \
-            "${num_users_a}" \
-            "${num_users_b}" \
-            "${num_users_c}"
+        "${start_time}" \
+        "${end_time}" \
+        "${period}" \
+        "${asg_type}" \
+        "${cpu_max}" \
+        "${disk_max}" \
+        "${duration}" \
+        "${image_size}" \
+        "${num_users_a}" \
+        "${num_users_b}" \
+        "${num_users_c}"
 done
 
-
-
 # ******************************************************************** clean up
-# scale down & disable autoscaling
-aws autoscaling update-auto-scaling-group \
-    --region us-west-1 \
-    --auto-scaling-group-name PicSiteASG \
-    --min-size 0 \
-    --max-size 0 \
-    --desired-capacity 0
+# scale down & disable auto-scaling
+./shutdown_auto_scaling_group.sh
 
 # a reminder
-echo "please manually confirm that the autoscale group scaled down!"
+echo "Please manually confirm that the auto-scaling group scaled down!"

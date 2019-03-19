@@ -1,11 +1,14 @@
-# load-generator-scripts-seng533
+# Load Generator Scripts SENG 533
 
-jmeter tests should be run with the following parameters:
+## Running
 
-./jmeter -n -t <.jmx file path> -JusersA=<num A users> -JusersB=<num B users> -JusersC=<num C users> -Jduration=<test duration in seconds> -l testresults.jtl
+`run-tests.sh` should be run with the following parameters:
 
-test_list notes
+```bash
+./run-tests.sh 
+```
 
-- test duration refers to the time to scale from 0 users to max users
+## 'test_list' Notes
 
-- autoscaling_value refers to type of policy. 0 is 'none', 1 is 'dynamic'
+- `test_duration` refers to the time to scale from 0 users to max users
+- `autoscaling_value` refers to type of policy. 0 is 'none', 1 is 'dynamic'
