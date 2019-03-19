@@ -8,6 +8,8 @@ exit_fn () {
     then
         kill ${alarm_monitor_script_pid}
     fi
+    echo "Script interrupted while running tests ..."
+    echo "Please run 'shutdown_auto_scaling_group.sh' if you would like to stop testing."
     exit                    # Then exit script.
 }
 
@@ -16,6 +18,12 @@ period=30 # used by get-logs.py
 num_tests=$(cat test_list.json | jq "length")
 load_balancer_dns_name="$1"
 
+if [[ "${load_balancer_dns_name}" = "" ]]
+then
+    echo "Missing arg for Load Balancer DNS name, quitting."
+    exit
+fi
+
 # ********************************************************************** 'main'
 for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
@@ -23,7 +31,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     asg_type=$(cat test_list.json | jq ".[$i].autoscaling_value")
     cpu_max=$(cat test_list.json | jq ".[$i].cpu_utilization_param")
     disk_max=$(cat test_list.json | jq ".[$i].disk_utilization_param")
-    duration=$(cat test_list.json | jq ".[1].test_duration")
+    duration=$(cat test_list.json | jq ".[$i].test_duration")
     image_size=$(cat test_list.json | jq ".[$i].image_size")
     num_users_a=$(cat test_list.json | jq ".[$i].num_users_a")
     num_users_b=$(cat test_list.json | jq ".[$i].num_users_b")
