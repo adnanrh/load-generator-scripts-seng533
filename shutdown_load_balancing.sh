@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# delete load balancer
+# delete load balancer PicSiteAppLB
 load_balancer_arn_json=$(aws elbv2 describe-load-balancers --names PicSiteAppLB 2> /dev/null)
 if ! [[ "${load_balancer_arn_json}" = "" ]]
 then
@@ -16,7 +16,7 @@ else
     echo "No load balancer found!"
 fi
 
-# delete target group
+# delete target group PicSiteTargetGroup
 target_group_arn_json=$(aws elbv2 describe-target-groups --names PicSiteTargetGroup 2> /dev/null)
 if ! [[ "${target_group_arn_json}" = "" ]]
 then
@@ -32,7 +32,7 @@ else
     echo "No target group found!"
 fi
 
-# detach target groups from auto scaling group
+# detach target groups from auto scaling group PicSiteASG
 asg_target_group_arns_json=$(aws autoscaling describe-load-balancer-target-groups --auto-scaling-group-name PicSiteASG 2> /dev/null)
 if ! [[ "${asg_target_group_arns_json}" = "" ]]
 then
