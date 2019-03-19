@@ -2,6 +2,7 @@
 
 alarm_monitor_script_pid=
 
+# Capture "ctrl + c" interruptions and kill the alarm monitor script if it is running
 exit_fn () {
     trap SIGINT             # Restore signal handling for SIGINT
     if ! [[ "alarm_monitor_script_pid" = "" ]]
@@ -9,18 +10,24 @@ exit_fn () {
         kill ${alarm_monitor_script_pid}
     fi
     echo "Script interrupted while running tests ..."
-    echo "Please run 'shutdown_auto_scaling_group.sh' if you would like to stop testing."
+    echo "Please run './shutdown_load_balancing.sh' and 'shutdown_auto_scaling_group.sh' if you would like to stop testing."
     exit                    # Then exit script.
 }
 
 # **************************************************************** 'initialize'
+
 period=30 # used by get-logs.py
 num_tests=$(cat test_list.json | jq "length")
-load_balancer_dns_name="$1"
+
+# spin up load balancing infrastructure if it does not already exist.
+./init_load_balancing.sh
+
+# grab new load balancer DNS name
+load_balancer_dns_name=$(aws elbv2 describe-load-balancers --names PicSiteAppLB | jq ".LoadBalancers[0].DNSName")
 
 if [[ "${load_balancer_dns_name}" = "" ]]
 then
-    echo "Missing arg for Load Balancer DNS name, quitting."
+    echo "Load balancer DNS name not found, quitting."
     exit
 fi
 
@@ -43,12 +50,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     alarm_monitor_script_pid=$!
 
     # init auto-scaling group
-    aws autoscaling update-auto-scaling-group \
-        --region us-west-1 \
-        --auto-scaling-group-name PicSiteASG \
-        --min-size 1 \
-        --max-size 5 \
-        --desired-capacity 1
+    ./init_auto_scaling_group.sh
 
     # wait until the group is ready
     ready="nope"
@@ -106,6 +108,10 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 done
 
 # ******************************************************************** clean up
+
+# shut down load balancing infrastructure
+./shutdown_load_balancing.sh
+
 # scale down & disable auto-scaling
 ./shutdown_auto_scaling_group.sh
 
