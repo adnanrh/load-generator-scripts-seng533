@@ -13,6 +13,7 @@ fi
 load_balancer_arn=$(aws elbv2 create-load-balancer \
     --name "PicSiteAppLB" \
     --type application \
+    --security-groups "sg-070a315fadd1bc749" \
     --subnets "subnet-5ecdb207" "subnet-48f0ce2d" \
     | jq -r ".LoadBalancers[0].LoadBalancerArn")
 
