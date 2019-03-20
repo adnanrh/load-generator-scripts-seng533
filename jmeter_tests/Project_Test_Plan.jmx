@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.1 r1853635">
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.1.1 r1855137">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
       <stringProp name="TestPlan.comments"></stringProp>
@@ -52,7 +52,7 @@
           <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Get Image Think Time" enabled="true">
             <intProp name="ActionProcessor.action">1</intProp>
             <intProp name="ActionProcessor.target">0</intProp>
-            <stringProp name="ActionProcessor.duration">500</stringProp>
+            <stringProp name="ActionProcessor.duration">50</stringProp>
           </TestAction>
           <hashTree/>
         </hashTree>
@@ -210,7 +210,7 @@
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">PicSiteAppLB-1885823884.us-west-1.elb.amazonaws.com</stringProp>
+          <stringProp name="HTTPSampler.domain">${load_balancer_dns}</stringProp>
           <stringProp name="HTTPSampler.port"></stringProp>
           <stringProp name="HTTPSampler.protocol"></stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
@@ -257,7 +257,7 @@
           <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Get Image Think Time" enabled="true">
             <intProp name="ActionProcessor.action">1</intProp>
             <intProp name="ActionProcessor.target">0</intProp>
-            <stringProp name="ActionProcessor.duration">500</stringProp>
+            <stringProp name="ActionProcessor.duration">50</stringProp>
           </TestAction>
           <hashTree/>
         </hashTree>
@@ -415,7 +415,7 @@
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">PicSiteAppLB-1885823884.us-west-1.elb.amazonaws.com</stringProp>
+          <stringProp name="HTTPSampler.domain">${load_balancer_dns}</stringProp>
           <stringProp name="HTTPSampler.port"></stringProp>
           <stringProp name="HTTPSampler.protocol"></stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
@@ -462,7 +462,7 @@
           <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Get Image Think Time" enabled="true">
             <intProp name="ActionProcessor.action">1</intProp>
             <intProp name="ActionProcessor.target">0</intProp>
-            <stringProp name="ActionProcessor.duration">500</stringProp>
+            <stringProp name="ActionProcessor.duration">50</stringProp>
           </TestAction>
           <hashTree/>
         </hashTree>
@@ -592,19 +592,19 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="number_of_users_A" elementType="Argument">
             <stringProp name="Argument.name">number_of_users_A</stringProp>
-            <stringProp name="Argument.value">${__P(usersA, 16)}</stringProp>
+            <stringProp name="Argument.value">${__P(usersA, 64)}</stringProp>
             <stringProp name="Argument.desc">Number of users of class A.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="number_of_users_B" elementType="Argument">
             <stringProp name="Argument.name">number_of_users_B</stringProp>
-            <stringProp name="Argument.value">${__P(usersB, 40)}</stringProp>
+            <stringProp name="Argument.value">${__P(usersB, 160)}</stringProp>
             <stringProp name="Argument.desc">Number of users of class B.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="number_of_users_C" elementType="Argument">
             <stringProp name="Argument.name">number_of_users_C</stringProp>
-            <stringProp name="Argument.value">${__P(usersC, 8)}</stringProp>
+            <stringProp name="Argument.value">${__P(usersC, 32)}</stringProp>
             <stringProp name="Argument.desc">Number of users of class C.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
@@ -616,13 +616,13 @@
           </elementProp>
           <elementProp name="load_balancer_dns" elementType="Argument">
             <stringProp name="Argument.name">load_balancer_dns</stringProp>
-            <stringProp name="Argument.value">${__P(LoadBalancerDNS)}</stringProp>
+            <stringProp name="Argument.value">${__P(LoadBalancerDNS, PicSiteAppLB-372930899.us-west-1.elb.amazonaws.com )}</stringProp>
             <stringProp name="Argument.desc">Load Balancer DNS.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="image_size" elementType="Argument">
             <stringProp name="Argument.name">image_size</stringProp>
-            <stringProp name="Argument.value">${__P(ImageSize, 1)}</stringProp>
+            <stringProp name="Argument.value">${__P(ImageSize, 10)}</stringProp>
             <stringProp name="Argument.desc">Image size to request.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
