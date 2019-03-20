@@ -136,7 +136,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersA_response.csv</stringProp>
+          <stringProp name="filename">usersA_response${test_number}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -174,7 +174,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersA_summary.csv</stringProp>
+          <stringProp name="filename">usersA_summary${test_number}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -341,7 +341,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersB_response.csv</stringProp>
+          <stringProp name="filename">usersB_response${test_number}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -379,7 +379,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersB_summary.csv</stringProp>
+          <stringProp name="filename">usersB_summary${test_number}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -546,7 +546,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersC_response.csv</stringProp>
+          <stringProp name="filename">usersC_response${test_number}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -584,7 +584,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersC_summary.csv</stringProp>
+          <stringProp name="filename">usersC_summary${test_number}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -624,6 +624,12 @@
             <stringProp name="Argument.name">image_size</stringProp>
             <stringProp name="Argument.value">${__P(ImageSize, 1)}</stringProp>
             <stringProp name="Argument.desc">Image size to request.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="test_number" elementType="Argument">
+            <stringProp name="Argument.name">test_number</stringProp>
+            <stringProp name="Argument.value">${__P(TestNumber)}</stringProp>
+            <stringProp name="Argument.desc">The number of the test run. Used in the name of the summary and response graph files to prevent overrwriting.</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>
