@@ -5,9 +5,9 @@
         "cpu_utilization_param": 20,
         "disk_utilization_param": 50,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 96,
+        "num_users_b": 240,
+        "num_users_c": 48
     },
     {
         "test_duration": 600,
@@ -15,9 +15,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 50,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 96,
+        "num_users_b": 240,
+        "num_users_c": 48
     },
     {
         "test_duration": 600,
@@ -25,9 +25,9 @@
         "cpu_utilization_param": 80,
         "disk_utilization_param": 50,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -35,9 +35,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 20,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -45,9 +45,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 50,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -55,9 +55,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 80,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -65,9 +65,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 50,
         "image_size": 1,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -75,9 +75,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 50,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -85,9 +85,9 @@
         "cpu_utilization_param": 50,
         "disk_utilization_param": 50,
         "image_size": 1,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
@@ -95,9 +95,9 @@
         "cpu_utilization_param": 20,
         "disk_utilization_param": 50,
         "image_size": 5,
-        "num_users_a": 16,
-        "num_users_b": 40,
-        "num_users_c": 8
+        "num_users_a": 48,
+        "num_users_b": 120,
+        "num_users_c": 24
     },
     {
         "test_duration": 600,
