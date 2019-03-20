@@ -1,0 +1,12 @@
+# Idea project
+.idea/
+
+# Python virtual environment
+venv/
+wvenv/
+
+# JMeter
+jmeter.log
+*_response.csv
+*_summary.csv
+testresults.jtl

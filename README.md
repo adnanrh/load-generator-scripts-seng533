@@ -1,11 +1,34 @@
-# load-generator-scripts-seng533
+# Load Generator Scripts SENG 533
+_Now more automated!_
 
-jmeter tests should be run with the following parameters:
+## Running all tests
+Just one command:
+```bash
+./run-tests.sh 
+```
+NOTE: If interrupted pre-maturely, or if the shell crashes during a test run, you MUST run the teardown:
+```bash
+./shutdown_load_balancing.sh
+./shutdown_auto_scaling_groups.sh
+```
 
-./jmeter -n -t <.jmx file path> -JusersA=<num A users> -JusersB=<num B users> -JusersC=<num C users> -Jduration=<test duration in seconds> -l testresults.jtl
+## Running tests individually
+This is for testing the tests.
+Remember that load balancers and instances cost money, so don't forget to teardown!
 
-test_list notes
+Setup:
+```bash
+./init_load_balancing.sh
+./init_auto_scaling_groups.sh
+```
 
-- test duration refers to the time to scale from 0 users to max users
+Teardown:
+```bash
+./shutdown_load_balancing.sh
+./shutdown_auto_scaling_groups.sh
+```
 
-- autoscaling_value refers to type of policy. 0 is 'none', 1 is 'dynamic'
+## 'test_list' Notes
+
+- `test_duration` refers to the time to scale from 0 users to max users
+- `autoscaling_value` refers to type of policy. 0 is 'none', 1 is 'dynamic'
