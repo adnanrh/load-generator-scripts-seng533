@@ -23,7 +23,7 @@ num_tests=$(cat test_list.json | jq "length")
 ./init_load_balancing.sh
 
 # grab new load balancer DNS name
-load_balancer_dns_name=$(aws elbv2 describe-load-balancers --names PicSiteAppLB | jq ".LoadBalancers[0].DNSName")
+load_balancer_dns_name="$(aws elbv2 describe-load-balancers --names PicSiteAppLB | jq -r '.LoadBalancers[0].DNSName')"
 
 if [[ "${load_balancer_dns_name}" = "" ]]
 then
@@ -95,9 +95,9 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
         -JusersB="${num_users_b}" \
         -JusersC="${num_users_c}" \
         -Jduration="${duration}" \
-        -JLoadBalancerDNS=${load_balancer_dns_name} \
-        -JImageSize=${image_size} \
-		-JTestID=${test_id} \
+        -JLoadBalancerDNS="${load_balancer_dns_name}" \
+        -JImageSize="${image_size}" \
+        -JTestID="${test_id}" \
         -l results/testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
     echo "Finished running JMeter test."
