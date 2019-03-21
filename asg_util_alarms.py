@@ -43,6 +43,7 @@ def get_mean(data_points):
 
     return avg
 
+
 def run_scaling_notifier():
     """
 
@@ -67,16 +68,14 @@ def run_scaling_notifier():
 
             if response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
                 instance_id_list.append(instance.id)
-    print('instances founds: ' + str(instance_id_list))
+    print('Instances founds: ' + str(instance_id_list))
 
     # Check if no running instances found
     if len(instance_id_list) == 0:
-        print("No running & ready instances found!")
+        print("No running and ready instances found!")
         return
 
-    max_cpu_avg = 0
     max_cpu_util = 0
-    max_disk_avg = 0
     max_disk_util = 0
 
     for instance_id in instance_id_list:
@@ -174,7 +173,7 @@ def run_scaling_notifier():
     print("Target: " + str(target))
 
     # Send target value
-    response = cloudwatch_client.put_metric_data(
+    cloudwatch_client.put_metric_data(
         Namespace='PicSiteASG',
         MetricData=[
             {
@@ -192,6 +191,7 @@ def run_scaling_notifier():
         ]
     )
 
+
 while True:
     run_scaling_notifier()
-    time.sleep(1)
+    time.sleep(5)
