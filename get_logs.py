@@ -10,8 +10,11 @@ LOGS_DIR = "aws_logs"
 
 def get_logs(ec2, ec2_client, cw_client, args):
     """
-    Gets logs for cpu, disk, and memory utilization, plus some info about
-    network use
+    Between the start and end times,
+    - gets a list of running instances in the autoscaling group
+    - obtains logs for each
+    - converts these per-instance logs into per-timepoint logs
+    - outputs to csv
 
     """
     # get params from args
@@ -33,36 +36,14 @@ def get_logs(ec2, ec2_client, cw_client, args):
     # Fetch running instances from PicSiteASG autoscaling group
     instances = ec2.instances.filter(
             Filters=[
-                {'Name': 'instance-state-name', 'Values': ['running']},
                 {'Name': 'tag:aws:autoscaling:groupName', 'Values': ['PicSiteASG']}
             ]
     )
+    instance_id_list = [instance.id for instance in instances]
 
-    # Get ids from retrieved instances but exclude if not 'ok' status
-    instance_id_list = list()
-    for instance in instances:
-        response = ec2_client.describe_instance_status(
-            InstanceIds=['{}'.format(instance.id)]
-        )
-
-        if response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
-            instance_id_list.append(instance.id)
-
-    print('instances founds: ' + str(instance_id_list))
-
-    # Check if no running instances found
-    if len(instance_id_list) == 0:
-        print("No running & ready instances found!")
-        return
-
-    cpu0_responses = []
-    cpu1_responses = []
-    disk_responses = []
-    mem_responses = []  # mem_used_percent
-    network_responses = [] # NetworkOut
+    logs_by_instance = []
 
     for instance_id in instance_id_list:
-        # Take maximum utilization for a single cpu for each instance.
         cpu0_response = cw_client.get_metric_statistics(
             Namespace='CWAgent',
             Dimensions=[
@@ -96,13 +77,17 @@ def get_logs(ec2, ec2_client, cw_client, args):
             ],
             Unit='Percent'
         )
+
+        # exclude instances with no activity during the timespan of interest
+        if (not cpu0_response) or (len(cpu0_response['Datapoints']) < 1):
+            continue
+
         if cpu0_response:
             # 'Idle Percent * 100' -> 'Util Percent'
-            responses = [(100 - util_val['Average']) / 100 for
-                    util_val in cpu0_response['Datapoints']]
-            cpu0_responses.append(responses)
+            cpu0_utils = [(100 - idle_percent['Average']) / 100 for
+                    idle_percent in cpu0_response['Datapoints']]
         else:
-            cpu0_responses.append(-1)
+            cpu0_utils = None
 
         # Take maximum utilization for a single cpu for each instance.
         cpu1_response = cw_client.get_metric_statistics(
@@ -140,11 +125,10 @@ def get_logs(ec2, ec2_client, cw_client, args):
         )
         if cpu1_response:
             # 'Idle Percent * 100' -> 'Util Percent'
-            responses = [(100 - util_val['Average']) / 100 for
+            cpu1_utils = [(100 - util_val['Average']) / 100 for
                     util_val in cpu1_response['Datapoints']]
-            cpu1_responses.append(responses)
         else:
-            cpu1_responses.append(-1)
+            cpu1_utils = None
 
         # Take maximum utilization for the disk for each instance.
         disk_response = cw_client.get_metric_statistics(
@@ -183,11 +167,10 @@ def get_logs(ec2, ec2_client, cw_client, args):
 
         if disk_response:
             # 'Milliseconds' -> 'Util Percent'
-            responses = [response['Average'] / 1000 / sample_period for
+            disk_utils = [response['Average'] / 1000 / sample_period for
                     response in disk_response['Datapoints']]
-            disk_responses.append(responses)
         else:
-            disk_responses.append(-1)
+            disk_utils = None
 
         mem_response = cw_client.get_metric_statistics(
             Namespace='CWAgent',
@@ -220,10 +203,9 @@ def get_logs(ec2, ec2_client, cw_client, args):
         )
 
         if mem_response:
-            responses = [response['Average'] for response in mem_response['Datapoints']]
-            mem_responses.append(responses)
+            mem_utils = [response['Average'] for response in mem_response['Datapoints']]
         else:
-            mem_responses.append(-1)
+            mem_utils = None
 
         # unlike above, this doesnt seem to work unless very few dimensions are
         # passed in
@@ -245,10 +227,72 @@ def get_logs(ec2, ec2_client, cw_client, args):
         )
 
         if network_response:
-            responses = [response['Average'] for response in network_response['Datapoints']]
-            network_responses.append(responses)
+            network_out_values = [response['Average'] for response in network_response['Datapoints']]
         else:
-            network_responses.append(-1)
+            network_out_values = None
+
+        logs_by_instance.append({
+            'instance_id': instance_id,
+            'cpu0_utils': cpu0_utils,
+            'cpu1_utils': cpu1_utils,
+            'disk_utils': disk_utils,
+            'mem_utils': mem_utils,
+            'network_out_values': network_out_values
+        })
+
+    def convert_logs_by_instance_to_per_timepoint(logs_by_instance):
+
+        def left_pad(logs_by_instance):
+            '''
+            Since the tests only involve scaling up, we assume missing values are
+            due to late scalings and left-fill with zeroes.
+
+            This could be wrong if for example logs in the middle are missing for
+            some reason...
+            '''
+
+            # find total timepoints from oldest instance
+            num_timepoints = 0
+            oldest_instance = -1
+            for log in logs_by_instance:
+                for key, val in log.items():
+                    if key == 'instance_id': continue
+                    if len(log[key]) > num_timepoints:
+                        num_timepoints = len(log[key])
+
+            # perform the padding
+            for log in logs_by_instance:
+                if len(log[key]) < num_timepoints:
+                    for key, val in log.items():
+                        if key == 'instance_id': continue
+                        num_missing = num_timepoints - len(log[key])
+                        left_pad = [0 for missing_point in range(0, num_missing)]
+                        log[key] = left_pad + log[key]
+            return logs_by_instance
+
+        padded_logs = left_pad(logs_by_instance)
+
+        num_instances = len(padded_logs)
+        num_timepoints = len(padded_logs[0]['cpu0_utils'])
+
+        logs_by_timepoint = []
+        for i in range(0, num_instances):
+            for j in range(0, num_timepoints):
+                # print(padded_logs[i][)
+                logs_by_timepoint.append({
+                    'instance_id': padded_logs[i]['instance_id'],
+                    'cpu0_util': padded_logs[i]['cpu0_utils'][j],
+                    'cpu1_util': padded_logs[i]['cpu1_utils'][j],
+                    'disk_util': padded_logs[i]['disk_utils'][j],
+                    'mem_util': padded_logs[i]['mem_utils'][j],
+                    'network_out': padded_logs[i]['network_out_values'][j],
+                    'timepoint': j
+                })
+        return logs_by_timepoint
+
+
+
+    logs_by_timepoint = convert_logs_by_instance_to_per_timepoint(logs_by_instance)
 
     with open(os.path.join(results_dir, 'aws_metrics_{}_{}.csv'.format(test_id, test_end_time)), 'w') as csv_file:
         fieldnames = ['test_id',
@@ -259,7 +303,7 @@ def get_logs(ec2, ec2_client, cw_client, args):
                       'cpu1_util',
                       'mem_util',
                       'disk_util',
-                      'net_util',
+                      'network_out',
                       'asg_policy_type',
                       'asg_cpu_max',
                       'asg_disk_max',
@@ -267,22 +311,23 @@ def get_logs(ec2, ec2_client, cw_client, args):
                       'image_size',
                       'num_users_a',
                       'num_users_b',
-                      'num_users_c']
+                      'num_users_c',
+                      'instance_id']
 
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
         writer.writeheader()
-        for i in range(0, len(cpu1_responses)):
+        for i in range(0, len(logs_by_timepoint)):
             data = {
                 fieldnames[0]: test_id,
-                fieldnames[1]: i,
+                fieldnames[1]: logs_by_timepoint[i]['timepoint'],
                 fieldnames[2]: test_start_time,
                 fieldnames[3]: test_end_time,
-                fieldnames[4]: cpu0_responses[i],
-                fieldnames[5]: cpu1_responses[i],
-                fieldnames[6]: mem_responses[i],
-                fieldnames[7]: disk_responses[i],
-                fieldnames[8]: network_responses[i],
+                fieldnames[4]: logs_by_timepoint[i]['cpu0_util'],
+                fieldnames[5]: logs_by_timepoint[i]['cpu1_util'],
+                fieldnames[6]: logs_by_timepoint[i]['mem_util'],
+                fieldnames[7]: logs_by_timepoint[i]['disk_util'],
+                fieldnames[8]: logs_by_timepoint[i]['network_out'],
                 fieldnames[9]: asg_policy_type,
                 fieldnames[10]: asg_cpu_max,
                 fieldnames[11]: asg_disk_max,
@@ -290,7 +335,8 @@ def get_logs(ec2, ec2_client, cw_client, args):
                 fieldnames[13]: image_size,
                 fieldnames[14]: num_users_a,
                 fieldnames[15]: num_users_b,
-                fieldnames[16]: num_users_c
+                fieldnames[16]: num_users_c,
+                fieldnames[17]: logs_by_timepoint[i]['instance_id']
             }
             writer.writerow(data)
 
@@ -330,4 +376,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
