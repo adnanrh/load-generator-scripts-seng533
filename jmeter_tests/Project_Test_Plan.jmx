@@ -12,6 +12,68 @@
       <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
     <hashTree>
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Command Line Parameters" enabled="true">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="number_of_users_A" elementType="Argument">
+            <stringProp name="Argument.name">number_of_users_A</stringProp>
+            <stringProp name="Argument.value">${__P(usersA, 64)}</stringProp>
+            <stringProp name="Argument.desc">Number of users of class A.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="number_of_users_B" elementType="Argument">
+            <stringProp name="Argument.name">number_of_users_B</stringProp>
+            <stringProp name="Argument.value">${__P(usersB, 160)}</stringProp>
+            <stringProp name="Argument.desc">Number of users of class B.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="number_of_users_C" elementType="Argument">
+            <stringProp name="Argument.name">number_of_users_C</stringProp>
+            <stringProp name="Argument.value">${__P(usersC, 32)}</stringProp>
+            <stringProp name="Argument.desc">Number of users of class C.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="test_duration" elementType="Argument">
+            <stringProp name="Argument.name">test_duration</stringProp>
+            <stringProp name="Argument.value">${__P(duration, 600)}</stringProp>
+            <stringProp name="Argument.desc">Duration of tests. Number of users will be ramped up to in this duration.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="load_balancer_dns" elementType="Argument">
+            <stringProp name="Argument.name">load_balancer_dns</stringProp>
+            <stringProp name="Argument.value">${__P(LoadBalancerDNS, PicSiteAppLB-372930899.us-west-1.elb.amazonaws.com )}</stringProp>
+            <stringProp name="Argument.desc">Load Balancer DNS.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="image_size" elementType="Argument">
+            <stringProp name="Argument.name">image_size</stringProp>
+            <stringProp name="Argument.value">${__P(ImageSize, 10)}</stringProp>
+            <stringProp name="Argument.desc">Image size to request.</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="test_id" elementType="Argument">
+            <stringProp name="Argument.name">test_id</stringProp>
+            <stringProp name="Argument.value">${__P(TestID, 1)}</stringProp>
+            <stringProp name="Argument.desc">ID of the test</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="results_dir" elementType="Argument">
+            <stringProp name="Argument.name">results_dir</stringProp>
+            <stringProp name="Argument.value">${__P(ResultsDir, results)}</stringProp>
+            <stringProp name="Argument.desc">Path to store results in</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </Arguments>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Cache-Control</stringProp>
+            <stringProp name="Header.value">no-cache</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="User A" enabled="true">
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
@@ -588,59 +650,6 @@
         </ResultCollector>
         <hashTree/>
       </hashTree>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Command Line Parameters" enabled="true">
-        <collectionProp name="Arguments.arguments">
-          <elementProp name="number_of_users_A" elementType="Argument">
-            <stringProp name="Argument.name">number_of_users_A</stringProp>
-            <stringProp name="Argument.value">${__P(usersA, 64)}</stringProp>
-            <stringProp name="Argument.desc">Number of users of class A.</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="number_of_users_B" elementType="Argument">
-            <stringProp name="Argument.name">number_of_users_B</stringProp>
-            <stringProp name="Argument.value">${__P(usersB, 160)}</stringProp>
-            <stringProp name="Argument.desc">Number of users of class B.</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="number_of_users_C" elementType="Argument">
-            <stringProp name="Argument.name">number_of_users_C</stringProp>
-            <stringProp name="Argument.value">${__P(usersC, 32)}</stringProp>
-            <stringProp name="Argument.desc">Number of users of class C.</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="test_duration" elementType="Argument">
-            <stringProp name="Argument.name">test_duration</stringProp>
-            <stringProp name="Argument.value">${__P(duration, 600)}</stringProp>
-            <stringProp name="Argument.desc">Duration of tests. Number of users will be ramped up to in this duration.</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="load_balancer_dns" elementType="Argument">
-            <stringProp name="Argument.name">load_balancer_dns</stringProp>
-            <stringProp name="Argument.value">${__P(LoadBalancerDNS, PicSiteAppLB-372930899.us-west-1.elb.amazonaws.com )}</stringProp>
-            <stringProp name="Argument.desc">Load Balancer DNS.</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="image_size" elementType="Argument">
-            <stringProp name="Argument.name">image_size</stringProp>
-            <stringProp name="Argument.value">${__P(ImageSize, 10)}</stringProp>
-            <stringProp name="Argument.desc">Image size to request.</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="test_id" elementType="Argument">
-            <stringProp name="Argument.name">test_id</stringProp>
-            <stringProp name="Argument.value">${__P(TestID, 1)}</stringProp>
-            <stringProp name="Argument.desc">ID of the test</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="results_dir" elementType="Argument">
-            <stringProp name="Argument.name">results_dir</stringProp>
-            <stringProp name="Argument.value">${__P(ResultsDir, results)}</stringProp>
-            <stringProp name="Argument.desc">Path to store results in</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-        </collectionProp>
-      </Arguments>
-      <hashTree/>
     </hashTree>
   </hashTree>
 </jmeterTestPlan>
