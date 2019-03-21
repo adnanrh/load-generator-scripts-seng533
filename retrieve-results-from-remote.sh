@@ -24,4 +24,6 @@ fi
 load_balancer_dns=$(aws ec2 describe-instances --filters Name=instance-id,Values=i-015d0fb8593d8f75b --query Reservations[0].Instances[0].PublicDnsName --output text)
 remote_dir=/home/ubuntu/load-generator-scripts-seng533
 
-scp -i ${ssh_public_key} -r ubuntu@${load_balancer_dns}:${remote_dir}/results/* ${local_dir}/results
+rsync -av --progress -e "ssh -i ${ssh_public_key}" \
+       ubuntu@${load_balancer_dns}:${remote_dir}/results/* \
+       ${local_dir}/results
