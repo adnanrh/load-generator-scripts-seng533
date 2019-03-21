@@ -340,10 +340,6 @@ def get_logs(ec2, ec2_client, cw_client, args):
             writer.writerow(data)
 
 
-
-
-
-
 def main():
     # Parse arguments
     parser = ArgumentParser()
