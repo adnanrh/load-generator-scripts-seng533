@@ -7,6 +7,3 @@ wvenv/
 
 # JMeter
 jmeter.log
-*_response.csv
-*_summary.csv
-testresults.jtl

@@ -1,5 +1,22 @@
 #!/bin/bash
 
+# detach target groups from auto scaling group PicSiteASG
+asg_target_group_arns_json=$(aws autoscaling describe-load-balancer-target-groups --auto-scaling-group-name PicSiteASG | jq .LoadBalancerTargetGroups)
+if ! [[ "${asg_target_group_arns_json}" = "[]" ]]
+then
+    asg_target_group_arns=$(echo ${asg_target_group_arns_json} | jq -rc ".[].LoadBalancerTargetGroupARN")
+
+    aws autoscaling detach-load-balancer-target-groups --auto-scaling-group-name PicSiteASG \
+        --target-group-arns ${asg_target_group_arns}
+
+    if [[ "${?}" = "0" ]]
+    then
+        echo "Detached target groups from auto scaling group PicSiteASG with ARNs \"${asg_target_group_arns}\""
+    fi
+else
+    echo "No target groups attached to auto scaling group PicSiteASG!"
+fi
+
 # delete load balancer PicSiteAppLB
 load_balancer_arn_json=$(aws elbv2 describe-load-balancers --names PicSiteAppLB 2> /dev/null)
 if ! [[ "${load_balancer_arn_json}" = "" ]]
@@ -10,10 +27,10 @@ then
 
     if [[ "${?}" = "0" ]]
     then
-        echo "Deleted load balancer with ARN \"${load_balancer_arn}\""
+        echo "Deleted load balancer PicSiteAppLB with ARN \"${load_balancer_arn}\""
     fi
 else
-    echo "No load balancer found!"
+    echo "No load balancer PicSiteAppLB found!"
 fi
 
 # delete target group PicSiteTargetGroup
@@ -26,25 +43,8 @@ then
 
     if [[ "${?}" = "0" ]]
     then
-        echo "Deleted target group with ARN \"${target_group_arn}\""
+        echo "Deleted target group PicSiteTargetGroup with ARN \"${target_group_arn}\""
     fi
 else
-    echo "No target group found!"
-fi
-
-# detach target groups from auto scaling group PicSiteASG
-asg_target_group_arns_json=$(aws autoscaling describe-load-balancer-target-groups --auto-scaling-group-name PicSiteASG 2> /dev/null)
-if ! [[ "${asg_target_group_arns_json}" = "" ]]
-then
-    asg_target_group_arns=$(echo ${asg_target_group_arns_json} | jq -rc ".LoadBalancerTargetGroups[].LoadBalancerTargetGroupARN")
-
-    aws autoscaling detach-load-balancer-target-groups --auto-scaling-group-name PicSiteASG \
-        --target-group-arns ${asg_target_group_arns}
-
-    if [[ "${?}" = "0" ]]
-    then
-        echo "Detached target groups with ARNs \"${asg_target_group_arns}\""
-    fi
-else
-    echo "No target group found!"
+    echo "No target group PicSiteTargetGroup found!"
 fi

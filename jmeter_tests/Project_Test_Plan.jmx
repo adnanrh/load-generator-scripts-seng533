@@ -136,7 +136,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersA_response_${test_id}.csv</stringProp>
+          <stringProp name="filename">results/usersA_response_${test_id}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -174,7 +174,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersA_summary_${test_id}.csv</stringProp>
+          <stringProp name="filename">results/usersA_summary_${test_id}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -341,7 +341,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersB_response_${test_id}.csv</stringProp>
+          <stringProp name="filename">results/usersB_response_${test_id}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -379,7 +379,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersB_summary_${test_id}.csv</stringProp>
+          <stringProp name="filename">results/usersB_summary_${test_id}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -546,7 +546,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersC_response_${test_id}.csv</stringProp>
+          <stringProp name="filename">results/usersC_response_${test_id}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -584,7 +584,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">usersC_summary_${test_id}.csv</stringProp>
+          <stringProp name="filename">results/usersC_summary_${test_id}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>

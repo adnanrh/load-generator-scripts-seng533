@@ -10,13 +10,13 @@ exit_fn () {
         kill ${alarm_monitor_script_pid}
     fi
     echo "Script interrupted while running tests ..."
-    echo "Please run './shutdown_load_balancing.sh' and 'shutdown_auto_scaling_group.sh' if you would like to stop testing."
+    echo "Please run 'shutdown_load_balancing.sh' and 'shutdown_auto_scaling_group.sh' if you would like to stop testing."
     exit                    # Then exit script.
 }
 
 # **************************************************************** 'initialize'
 
-period=30 # used by get-logs.py
+period=30 # used by get_logs.py
 num_tests=$(cat test_list.json | jq "length")
 
 # spin up load balancing infrastructure if it does not already exist.
@@ -45,11 +45,6 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     num_users_c=$(cat test_list.json | jq ".[$i].num_users_c")
 	test_id=${i}
 
-    # setup auto-scaling monitor script and track pid to kill it later
-    trap 'exit_fn' SIGINT
-    python3 asg_util_alarms.py "$cpu_max" "$disk_max" &
-    alarm_monitor_script_pid=$!
-
     # init auto-scaling group
     ./init_auto_scaling_group.sh
 
@@ -57,6 +52,12 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     ready="nope"
     while [[ "$ready" = "nope" ]]
     do
+        # Reset 'Target'
+        aws cloudwatch put-metric-data --namespace "PicSiteASG" \
+            --metric-name "Target" \
+            --value "0.5" \
+            --dimensions "AutoScalingGroupName=PicSiteASG"
+
         group=$(aws autoscaling describe-auto-scaling-groups \
                 --auto-scaling-group-names PicSiteASG \
                 --region us-west-1)
@@ -72,11 +73,21 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
             if [[ "${actual_status}" = "ok" ]]
             then
                 ready="true"
+            else
+                echo "Waiting for instance status = ok. Currently instance status = ${actual_status}"
             fi
+        else
+            echo "Waiting for num_instances = 1. Currently num_Instances = ${group_len}"
         fi
     done
 
+    # setup auto-scaling monitor script and track pid to kill it later
+    trap 'exit_fn' SIGINT
+    python3 asg_util_alarms.py "$cpu_max" "$disk_max" &
+    alarm_monitor_script_pid=$!
+
     # run JMeter
+    echo "Running JMeter test ..."
     start_time=$(date +%s) # ms since epoch utc
     /home/ubuntu/apache-jmeter-5.1/bin/jmeter -n \
         -t jmeter_tests/Project_Test_Plan.jmx \
@@ -86,16 +97,17 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
         -Jduration="${duration}" \
         -JLoadBalancerDNS=${load_balancer_dns_name} \
         -JImageSize=${image_size} \
-		-JTestID=${test_id}
-        -l testresults.jtl
+		-JTestID=${test_id} \
+        -l results/testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
+    echo "Finished running JMeter test."
 
     # stop auto-scaling monitoring script since it needs new params for next test
     trap SIGINT
-    kill ${alarm_monitor_script_pid} # seems to be global
+    kill -s SIGINT ${alarm_monitor_script_pid} # seems to be global
 
     # get our logs
-    ./get-logs.py "$i" \
+    python3 get_logs.py "$i" \
         "${start_time}" \
         "${end_time}" \
         "${period}" \

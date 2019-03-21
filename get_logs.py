@@ -1,60 +1,32 @@
 #!/usr/bin/python3
-
-from argparse import ArgumentParser
-from datetime import datetime, timedelta
-
 import csv
+import os
+from argparse import ArgumentParser
+
 import boto3
-import time
 
-# Parse arguments
-parser = ArgumentParser()
-parser.add_argument('boundaries',
-                    metavar=('test_id',
-                             'test_start_time',
-                             'test_end_time',
-                             'sample_period',
-                             'asg_policy_type',
-                             'asg_cpu_max',
-                             'asg_disk_max',
-                             'asg_scaleup_duration',
-                             'image_size',
-                             'num_users_a',
-                             'num_users_b',
-                             'num_users_c'),
-                    type=int, nargs=12,
-                    help="So many arguments, look at the source ")
-args = parser.parse_args() # hint - this crashes if you provide 0 args
-
-# set global variables
-test_id = args.boundaries[0]
-test_start_time = args.boundaries[1]
-test_end_time = args.boundaries[2]
-sample_period = args.boundaries[3]
-asg_policy_type = args.boundaries[4]
-asg_cpu_max = args.boundaries[5]
-asg_disk_max = args.boundaries[6]
-asg_scaleup_duration = args.boundaries[7]
-image_size = args.boundaries[8]
-num_users_a = args.boundaries[9]
-num_users_b = args.boundaries[10]
-num_users_c = args.boundaries[11]
-
-region = "us-west-1"
+LOGS_DIR = "aws_logs"
 
 
-# Setup AWS resources
-ec2 = boto3.resource('ec2', region_name=region)
-cloudwatch = boto3.resource('cloudwatch', region_name=region)
-cloudwatch_client = boto3.client('cloudwatch', region_name=region)
-ec2_client = boto3.client('ec2', region_name=region)
-
-def get_logs():
+def get_logs(ec2, ec2_client, cw_client, args):
     """
     Gets logs for cpu, disk, and memory utilization, plus some info about
     network use
 
     """
+    # get params from args
+    test_id = args.boundaries[0]
+    test_start_time = args.boundaries[1]
+    test_end_time = args.boundaries[2]
+    sample_period = args.boundaries[3]
+    asg_policy_type = args.boundaries[4]
+    asg_cpu_max = args.boundaries[5]
+    asg_disk_max = args.boundaries[6]
+    asg_scaleup_duration = args.boundaries[7]
+    image_size = args.boundaries[8]
+    num_users_a = args.boundaries[9]
+    num_users_b = args.boundaries[10]
+    num_users_c = args.boundaries[11]
 
     # Fetch running instances from PicSiteASG autoscaling group
     instances = ec2.instances.filter(
@@ -67,12 +39,12 @@ def get_logs():
     # Get ids from retrieved instances but exclude if not 'ok' status
     instance_id_list = list()
     for instance in instances:
-            response = ec2_client.describe_instance_status(
-                InstanceIds=['{}'.format(instance.id)]
-            )
+        response = ec2_client.describe_instance_status(
+            InstanceIds=['{}'.format(instance.id)]
+        )
 
-            if response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
-                instance_id_list.append(instance.id)
+        if response['InstanceStatuses'][0]['InstanceStatus']['Status'] == 'ok':
+            instance_id_list.append(instance.id)
 
     print('instances founds: ' + str(instance_id_list))
 
@@ -89,7 +61,7 @@ def get_logs():
 
     for instance_id in instance_id_list:
         # Take maximum utilization for a single cpu for each instance.
-        cpu0_response = cloudwatch_client.get_metric_statistics(
+        cpu0_response = cw_client.get_metric_statistics(
             Namespace='CWAgent',
             Dimensions=[
                 {
@@ -131,7 +103,7 @@ def get_logs():
             cpu0_responses.append(-1)
 
         # Take maximum utilization for a single cpu for each instance.
-        cpu1_response = cloudwatch_client.get_metric_statistics(
+        cpu1_response = cw_client.get_metric_statistics(
             Namespace='CWAgent',
             Dimensions=[
                 {
@@ -173,7 +145,7 @@ def get_logs():
             cpu1_responses.append(-1)
 
         # Take maximum utilization for the disk for each instance.
-        disk_response = cloudwatch_client.get_metric_statistics(
+        disk_response = cw_client.get_metric_statistics(
             Namespace='CWAgent',
             Dimensions=[
                 {
@@ -215,7 +187,7 @@ def get_logs():
         else:
             disk_responses.append(-1)
 
-        mem_response = cloudwatch_client.get_metric_statistics(
+        mem_response = cw_client.get_metric_statistics(
             Namespace='CWAgent',
             Dimensions=[
                 {
@@ -251,10 +223,9 @@ def get_logs():
         else:
             mem_responses.append(-1)
 
-
         # unlike above, this doesnt seem to work unless very few dimensions are
         # passed in
-        network_response = cloudwatch_client.get_metric_statistics(
+        network_response = cw_client.get_metric_statistics(
             Namespace='AWS/EC2',
             Dimensions=[
                 {
@@ -277,9 +248,12 @@ def get_logs():
         else:
             network_responses.append(-1)
 
-    num_timepoints = len(instance_id_list)
+    try:
+        os.mkdir(LOGS_DIR)
+    except FileExistsError:
+        pass
 
-    with open('{}_{}.csv'.format(test_id, test_end_time), 'w') as csvfile:
+    with open(os.path.join(LOGS_DIR, '{}_{}.csv'.format(test_id, test_end_time)), 'w') as csv_file:
         fieldnames = ['test_id',
                       'timepoint',
                       'test_start_time',
@@ -298,11 +272,9 @@ def get_logs():
                       'num_users_b',
                       'num_users_c']
 
-
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
         writer.writeheader()
-        data = {}
         for i in range(0, len(cpu1_responses)):
             data = {
                 fieldnames[0]: test_id,
@@ -325,5 +297,39 @@ def get_logs():
             }
             writer.writerow(data)
 
+
+def main():
+    # Parse arguments
+    parser = ArgumentParser()
+    parser.add_argument('boundaries',
+                        metavar=('test_id',
+                                 'test_start_time',
+                                 'test_end_time',
+                                 'sample_period',
+                                 'asg_policy_type',
+                                 'asg_cpu_max',
+                                 'asg_disk_max',
+                                 'asg_scaleup_duration',
+                                 'image_size',
+                                 'num_users_a',
+                                 'num_users_b',
+                                 'num_users_c'),
+                        type=int, nargs=12,
+                        help="So many arguments, look at the source ")
+    args = parser.parse_args()  # hint - this crashes if you provide 0 args
+
+    # Setup AWS resources
+    region = "us-west-1"
+    ec2 = boto3.resource('ec2', region_name=region)
+    cw_client = boto3.client('cloudwatch', region_name=region)
+    ec2_client = boto3.client('ec2', region_name=region)
+
+    # Get logs
+    print("Getting logs...")
+    get_logs(ec2, ec2_client, cw_client, args)
+    print("Logs retrieved.")
+
+
 if __name__ == "__main__":
-    get_logs()
+    main()
+
