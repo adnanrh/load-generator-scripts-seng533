@@ -34,11 +34,28 @@ else
 fi
 
 # delete target group PicSiteTargetGroup
-target_group_arn_json=$(aws elbv2 describe-target-groups --names PicSiteTargetGroup 2> /dev/null)
-if ! [[ "${target_group_arn_json}" = "" ]]
+target_group_arn=$(aws elbv2 describe-target-groups --names PicSiteTargetGroup \
+    --query 'TargetGroups[0].TargetGroupArn' \
+    --output text \
+    2> /dev/null)
+if ! [[ "${target_group_arn}" = "None" ]] && ! [[ "${target_group_arn}" = "" ]]
 then
-    target_group_arn=$(echo ${target_group_arn_json} | jq -r ".TargetGroups[0].TargetGroupArn")
+    # first, deregister targets (instances) from the target group
+    target_ids=$(aws elbv2 describe-target-health \
+        --target-group-arn ${target_group_arn} \
+        --query 'TargetHealthDescriptions[*].Target.Id' \
+        --output text)
+    if ! [[ "${target_ids}" = "" ]]
+    then
+        target_ids_formatted=
+        for id in ${target_ids}
+        do
+            target_ids_formatted="${target_ids_formatted}ID=${id} "
+        done
+        aws elbv2 deregister-targets --target-group-arn ${target_group_arn} --targets ${target_ids_formatted}
+    fi
 
+    # finally, delete the target group
     aws elbv2 delete-target-group --target-group-arn ${target_group_arn}
 
     if [[ "${?}" = "0" ]]

@@ -79,11 +79,11 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
                 ready="true"
             else
                 echo "Waiting for instance status = ok. Currently instance status = ${actual_status}"
-                sleep 5
+                sleep 15
             fi
         else
             echo "Waiting for num_instances = 1. Currently num_instances = ${group_len}"
-            sleep 5
+            sleep 15
         fi
     done
 

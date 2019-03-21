@@ -19,7 +19,7 @@ load_balancer_arn=$(aws elbv2 create-load-balancer \
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Created load balancer with ARN \"${load_balancer_arn}\""
+    echo "Created load balancer PicSiteAppLB with ARN \"${load_balancer_arn}\""
 else
     echo "Error encountered while creating load balancer"
     exit $?
@@ -36,9 +36,23 @@ target_group_arn=$(aws elbv2 create-target-group \
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Created target group with ARN \"${target_group_arn}\""
+    echo "Created target group PicSiteTargetGroup with ARN \"${target_group_arn}\""
 else
     echo "Error encountered while creating target group. Recommend running teardown script"
+    exit $?
+fi
+
+# set PicSiteTargetGroup's deregistration delay to 30 seconds (connection drain time)
+aws elbv2 modify-target-group-attributes \
+    --target-group-arn ${target_group_arn} \
+    --attributes Key=deregistration_delay.timeout_seconds,Value=30 \
+    > /dev/null
+
+if [[ "${?}" = "0" ]]
+then
+    echo "Set target group PicSiteTargetGroup deregistration delay to 30 seconds"
+else
+    echo "Error encountered while setting PicSiteTargetGroup's deregistration delay. Recommend running teardown script"
     exit $?
 fi
 
