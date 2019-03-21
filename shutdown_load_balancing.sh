@@ -50,7 +50,7 @@ then
         target_ids_formatted=
         for id in ${target_ids}
         do
-            target_ids_formatted="${target_ids_formatted}ID=${id} "
+            target_ids_formatted="${target_ids_formatted}Id=${id} "
         done
         aws elbv2 deregister-targets --target-group-arn ${target_group_arn} --targets ${target_ids_formatted}
     fi
