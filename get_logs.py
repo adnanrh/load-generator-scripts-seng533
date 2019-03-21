@@ -8,7 +8,59 @@ import boto3
 LOGS_DIR = "aws_logs"
 
 
-def get_logs(ec2, ec2_client, cw_client, args):
+def left_pad_logs_by_instance(logs_by_instance):
+    '''
+    Since the tests only involve scaling up, we assume missing values are
+    due to late scalings and left-fill with zeroes.
+
+    This could be wrong if for example logs in the middle are missing for
+    some reason...
+    '''
+
+    # find total timepoints from oldest instance
+    num_timepoints = 0
+    for log in logs_by_instance:
+        for key, val in log.items():
+            if key == 'instance_id':
+                continue
+            if len(log[key]) > num_timepoints:
+                num_timepoints = len(log[key])
+
+    # perform the padding on items with less timepoints
+    for log in logs_by_instance:
+        for key, val in log.items():
+            if key == 'instance_id' or len(log[key]) == num_timepoints:
+                continue
+            num_missing = num_timepoints - len(log[key])
+            left_pad = [0 for _ in range(0, num_missing)]
+            log[key] = left_pad + log[key]
+    return logs_by_instance
+
+
+def convert_logs_by_instance_to_per_timepoint(logs_by_instance):
+
+    padded_logs = left_pad_logs_by_instance(logs_by_instance)
+
+    num_instances = len(padded_logs)
+    num_timepoints = len(padded_logs[0]['cpu0_utils'])
+
+    logs_by_timepoint = []
+    for i in range(0, num_instances):
+        for j in range(0, num_timepoints):
+            # print(padded_logs[i][)
+            logs_by_timepoint.append({
+                'instance_id': padded_logs[i]['instance_id'],
+                'cpu0_util': padded_logs[i]['cpu0_utils'][j],
+                'cpu1_util': padded_logs[i]['cpu1_utils'][j],
+                'disk_util': padded_logs[i]['disk_utils'][j],
+                'mem_util': padded_logs[i]['mem_utils'][j],
+                'network_out': padded_logs[i]['network_out_values'][j],
+                'timepoint': j
+            })
+    return logs_by_timepoint
+
+
+def get_logs(ec2, cw_client, args):
     """
     Between the start and end times,
     - gets a list of running instances in the autoscaling group
@@ -167,8 +219,7 @@ def get_logs(ec2, ec2_client, cw_client, args):
 
         if disk_response:
             # 'Milliseconds' -> 'Util Percent'
-            disk_utils = [response['Average'] / 1000 / sample_period for
-                    response in disk_response['Datapoints']]
+            disk_utils = [response['Average'] / 1000 / sample_period for response in disk_response['Datapoints']]
         else:
             disk_utils = None
 
@@ -239,58 +290,6 @@ def get_logs(ec2, ec2_client, cw_client, args):
             'mem_utils': mem_utils,
             'network_out_values': network_out_values
         })
-
-    def convert_logs_by_instance_to_per_timepoint(logs_by_instance):
-
-        def left_pad(logs_by_instance):
-            '''
-            Since the tests only involve scaling up, we assume missing values are
-            due to late scalings and left-fill with zeroes.
-
-            This could be wrong if for example logs in the middle are missing for
-            some reason...
-            '''
-
-            # find total timepoints from oldest instance
-            num_timepoints = 0
-            oldest_instance = -1
-            for log in logs_by_instance:
-                for key, val in log.items():
-                    if key == 'instance_id': continue
-                    if len(log[key]) > num_timepoints:
-                        num_timepoints = len(log[key])
-
-            # perform the padding
-            for log in logs_by_instance:
-                if len(log[key]) < num_timepoints:
-                    for key, val in log.items():
-                        if key == 'instance_id': continue
-                        num_missing = num_timepoints - len(log[key])
-                        left_pad = [0 for missing_point in range(0, num_missing)]
-                        log[key] = left_pad + log[key]
-            return logs_by_instance
-
-        padded_logs = left_pad(logs_by_instance)
-
-        num_instances = len(padded_logs)
-        num_timepoints = len(padded_logs[0]['cpu0_utils'])
-
-        logs_by_timepoint = []
-        for i in range(0, num_instances):
-            for j in range(0, num_timepoints):
-                # print(padded_logs[i][)
-                logs_by_timepoint.append({
-                    'instance_id': padded_logs[i]['instance_id'],
-                    'cpu0_util': padded_logs[i]['cpu0_utils'][j],
-                    'cpu1_util': padded_logs[i]['cpu1_utils'][j],
-                    'disk_util': padded_logs[i]['disk_utils'][j],
-                    'mem_util': padded_logs[i]['mem_utils'][j],
-                    'network_out': padded_logs[i]['network_out_values'][j],
-                    'timepoint': j
-                })
-        return logs_by_timepoint
-
-
 
     logs_by_timepoint = convert_logs_by_instance_to_per_timepoint(logs_by_instance)
 
@@ -366,11 +365,10 @@ def main():
     region = "us-west-1"
     ec2 = boto3.resource('ec2', region_name=region)
     cw_client = boto3.client('cloudwatch', region_name=region)
-    ec2_client = boto3.client('ec2', region_name=region)
 
     # Get logs
     print("Getting logs...")
-    get_logs(ec2, ec2_client, cw_client, args)
+    get_logs(ec2, cw_client, args)
     print("Logs retrieved.")
 
 
