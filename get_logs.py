@@ -285,7 +285,8 @@ def get_logs(ec2, ec2_client, cw_client, args):
                     'cpu1_util': padded_logs[i]['cpu1_utils'][j],
                     'disk_util': padded_logs[i]['disk_utils'][j],
                     'mem_util': padded_logs[i]['mem_utils'][j],
-                    'network_out': padded_logs[i]['network_out_values'][j]
+                    'network_out': padded_logs[i]['network_out_values'][j],
+                    'timepoint': j
                 })
         return logs_by_timepoint
 
@@ -319,7 +320,7 @@ def get_logs(ec2, ec2_client, cw_client, args):
         for i in range(0, len(logs_by_timepoint)):
             data = {
                 fieldnames[0]: test_id,
-                fieldnames[1]: i,
+                fieldnames[1]: logs_by_timepoint[i]['timepoint'],
                 fieldnames[2]: test_start_time,
                 fieldnames[3]: test_end_time,
                 fieldnames[4]: logs_by_timepoint[i]['cpu0_util'],
