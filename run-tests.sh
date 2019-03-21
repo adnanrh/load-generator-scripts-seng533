@@ -20,6 +20,7 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
     num_users_a=$(cat test_list.json | jq ".[$i].num_users_a")
     num_users_b=$(cat test_list.json | jq ".[$i].num_users_b")
     num_users_c=$(cat test_list.json | jq ".[$i].num_users_c")
+	test_id=${i}
 
     # setup autoscale monitor script and track pid to kill it later
     ./asg_util_alarms.py "$cpu_max" "$disk_max" &
@@ -68,6 +69,7 @@ for i in $(seq 0 $(expr $num_tests - 1)) ; do
         -Jduration="${duration}" \
         -JLoadBalancerDNS=${load_balancer_dns_name} \
         -JImageSize=${image_size} \
+		-JTestID=${test_id}
         -l testresults.jtl
     end_time=$(date +%s) # ms since epoch utc
 
