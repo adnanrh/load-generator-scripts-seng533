@@ -31,6 +31,10 @@ then
     exit
 fi
 
+# setup results directory based on current run session
+results_dir=results/$(date +%Y_%m_%d_%H%M%S)
+mkdir -p ${results_dir}
+
 # ********************************************************************** 'main'
 for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
@@ -75,15 +79,17 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
                 ready="true"
             else
                 echo "Waiting for instance status = ok. Currently instance status = ${actual_status}"
+                sleep 5
             fi
         else
-            echo "Waiting for num_instances = 1. Currently num_Instances = ${group_len}"
+            echo "Waiting for num_instances = 1. Currently num_instances = ${group_len}"
+            sleep 5
         fi
     done
 
     # setup auto-scaling monitor script and track pid to kill it later
     trap 'exit_fn' SIGINT
-    python3 asg_util_alarms.py "$cpu_max" "$disk_max" &
+    python3 asg_util_alarms.py "${cpu_max}" "${disk_max}" &
     alarm_monitor_script_pid=$!
 
     # run JMeter
@@ -98,7 +104,8 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
         -JLoadBalancerDNS="${load_balancer_dns_name}" \
         -JImageSize="${image_size}" \
         -JTestID="${test_id}" \
-        -l results/testresults.jtl
+        -JResultsDir="${results_dir}" \
+        -l ${results_dir}/testresults_${test_id}.jtl
     end_time=$(date +%s) # ms since epoch utc
     echo "Finished running JMeter test."
 
@@ -107,7 +114,8 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     kill -s SIGINT ${alarm_monitor_script_pid} # seems to be global
 
     # get our logs
-    python3 get_logs.py "$i" \
+    python3 get_logs.py "${results_dir}" \
+        "${test_id}"  \
         "${start_time}" \
         "${end_time}" \
         "${period}" \

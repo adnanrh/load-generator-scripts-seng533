@@ -226,7 +226,7 @@ def main():
     while True:
         run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper, cpu_lower, disk_upper, disk_lower, period_sec,
                              window_minutes)
-        time.sleep(5)
+        time.sleep(15)
 
 
 if __name__ == "__main__":

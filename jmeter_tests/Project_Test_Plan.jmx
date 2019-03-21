@@ -136,7 +136,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">results/usersA_response_${test_id}.csv</stringProp>
+          <stringProp name="filename">${results_dir}/usersA_response_${test_id}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -174,7 +174,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">results/usersA_summary_${test_id}.csv</stringProp>
+          <stringProp name="filename">${results_dir}/usersA_summary_${test_id}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -341,7 +341,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">results/usersB_response_${test_id}.csv</stringProp>
+          <stringProp name="filename">${results_dir}/usersB_response_${test_id}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -379,7 +379,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">results/usersB_summary_${test_id}.csv</stringProp>
+          <stringProp name="filename">${results_dir}/usersB_summary_${test_id}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -546,7 +546,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">results/usersC_response_${test_id}.csv</stringProp>
+          <stringProp name="filename">${results_dir}/usersC_response_${test_id}.csv</stringProp>
           <stringProp name="RespTimeGraph.interval">1000</stringProp>
         </ResultCollector>
         <hashTree/>
@@ -584,7 +584,7 @@
               <connectTime>true</connectTime>
             </value>
           </objProp>
-          <stringProp name="filename">results/usersC_summary_${test_id}.csv</stringProp>
+          <stringProp name="filename">${results_dir}/usersC_summary_${test_id}.csv</stringProp>
         </ResultCollector>
         <hashTree/>
       </hashTree>
@@ -630,6 +630,12 @@
             <stringProp name="Argument.name">test_id</stringProp>
             <stringProp name="Argument.value">${__P(TestID, 1)}</stringProp>
             <stringProp name="Argument.desc">ID of the test</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="results_dir" elementType="Argument">
+            <stringProp name="Argument.name">results_dir</stringProp>
+            <stringProp name="Argument.value">${__P(ResultsDir, results)}</stringProp>
+            <stringProp name="Argument.desc">Path to store results in</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
         </collectionProp>

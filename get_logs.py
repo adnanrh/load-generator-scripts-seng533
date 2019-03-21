@@ -15,6 +15,8 @@ def get_logs(ec2, ec2_client, cw_client, args):
 
     """
     # get params from args
+    results_dir = args.results_dir
+
     test_id = args.boundaries[0]
     test_start_time = args.boundaries[1]
     test_end_time = args.boundaries[2]
@@ -56,7 +58,7 @@ def get_logs(ec2, ec2_client, cw_client, args):
     cpu0_responses = []
     cpu1_responses = []
     disk_responses = []
-    mem_responses = [] # mem_used_percent
+    mem_responses = []  # mem_used_percent
     network_responses = [] # NetworkOut
 
     for instance_id in instance_id_list:
@@ -248,12 +250,7 @@ def get_logs(ec2, ec2_client, cw_client, args):
         else:
             network_responses.append(-1)
 
-    try:
-        os.mkdir(LOGS_DIR)
-    except FileExistsError:
-        pass
-
-    with open(os.path.join(LOGS_DIR, '{}_{}.csv'.format(test_id, test_end_time)), 'w') as csv_file:
+    with open(os.path.join(results_dir, 'aws_metrics_{}_{}.csv'.format(test_id, test_end_time)), 'w') as csv_file:
         fieldnames = ['test_id',
                       'timepoint',
                       'test_start_time',
@@ -301,6 +298,7 @@ def get_logs(ec2, ec2_client, cw_client, args):
 def main():
     # Parse arguments
     parser = ArgumentParser()
+    parser.add_argument('results_dir')
     parser.add_argument('boundaries',
                         metavar=('test_id',
                                  'test_start_time',
