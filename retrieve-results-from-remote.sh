@@ -26,4 +26,4 @@ remote_dir=/home/ubuntu/load-generator-scripts-seng533
 
 rsync -av --progress -e "ssh -i ${ssh_public_key}" \
        ubuntu@${load_balancer_dns}:${remote_dir}/results/* \
-       ${local_dir}/results
+       ${local_dir}/results_remote_lb
