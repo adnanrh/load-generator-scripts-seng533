@@ -42,12 +42,11 @@ def convert_logs_by_instance_to_per_timepoint(logs_by_instance):
     padded_logs = left_pad_logs_by_instance(logs_by_instance)
 
     num_instances = len(padded_logs)
-    num_timepoints = len(padded_logs[0]['cpu0_utils'])
+    num_timepoints = len(padded_logs[0]['cpu0_utils']) if num_instances > 0 else 0
 
     logs_by_timepoint = []
     for i in range(0, num_instances):
         for j in range(0, num_timepoints):
-            # print(padded_logs[i][)
             logs_by_timepoint.append({
                 'instance_id': padded_logs[i]['instance_id'],
                 'cpu0_util': padded_logs[i]['cpu0_utils'][j],
@@ -293,24 +292,18 @@ def get_logs(ec2, cw_client, args):
 
     logs_by_timepoint = convert_logs_by_instance_to_per_timepoint(logs_by_instance)
 
-    with open(os.path.join(results_dir, 'aws_metrics_{}_{}.csv'.format(test_id, test_end_time)), 'w') as csv_file:
+    filename = 'aws_metrics_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}.csv'.format(
+        test_id, test_start_time, test_end_time, asg_policy_type, asg_cpu_max, asg_disk_max, asg_scaleup_duration,
+        image_size, num_users_a, num_users_b, num_users_c
+    )
+    with open(os.path.join(results_dir, filename), 'w') as csv_file:
         fieldnames = ['test_id',
                       'timepoint',
-                      'test_start_time',
-                      'test_end_time',
                       'cpu0_util',
                       'cpu1_util',
                       'mem_util',
                       'disk_util',
                       'network_out',
-                      'asg_policy_type',
-                      'asg_cpu_max',
-                      'asg_disk_max',
-                      'asg_scaleup_duration',
-                      'image_size',
-                      'num_users_a',
-                      'num_users_b',
-                      'num_users_c',
                       'instance_id']
 
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
@@ -318,24 +311,13 @@ def get_logs(ec2, cw_client, args):
         writer.writeheader()
         for i in range(0, len(logs_by_timepoint)):
             data = {
-                fieldnames[0]: test_id,
-                fieldnames[1]: logs_by_timepoint[i]['timepoint'],
-                fieldnames[2]: test_start_time,
-                fieldnames[3]: test_end_time,
-                fieldnames[4]: logs_by_timepoint[i]['cpu0_util'],
-                fieldnames[5]: logs_by_timepoint[i]['cpu1_util'],
-                fieldnames[6]: logs_by_timepoint[i]['mem_util'],
-                fieldnames[7]: logs_by_timepoint[i]['disk_util'],
-                fieldnames[8]: logs_by_timepoint[i]['network_out'],
-                fieldnames[9]: asg_policy_type,
-                fieldnames[10]: asg_cpu_max,
-                fieldnames[11]: asg_disk_max,
-                fieldnames[12]: asg_scaleup_duration,
-                fieldnames[13]: image_size,
-                fieldnames[14]: num_users_a,
-                fieldnames[15]: num_users_b,
-                fieldnames[16]: num_users_c,
-                fieldnames[17]: logs_by_timepoint[i]['instance_id']
+                fieldnames[0]: logs_by_timepoint[i]['timepoint'],
+                fieldnames[1]: logs_by_timepoint[i]['cpu0_util'],
+                fieldnames[2]: logs_by_timepoint[i]['cpu1_util'],
+                fieldnames[3]: logs_by_timepoint[i]['mem_util'],
+                fieldnames[4]: logs_by_timepoint[i]['disk_util'],
+                fieldnames[5]: logs_by_timepoint[i]['network_out'],
+                fieldnames[6]: logs_by_timepoint[i]['instance_id']
             }
             writer.writerow(data)
 

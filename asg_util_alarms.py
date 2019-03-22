@@ -1,31 +1,120 @@
 #!/usr/bin/python3
+import calendar
 import logging
 import signal
 import sys
+import time
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
 
 import boto3
-import time
 
 FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.INFO)
 logger = logging.getLogger('asg_util_alarms')
 
+LAUNCH_TIME_DELAY_SECONDS = 300
+PERIOD_SEC = 30
+WINDOW_MINUTES = 2
 
-def get_mean_from_datapoints(data_points):
+
+def get_mean_from_data_points(data_points):
     """
     Get the mean value for input data points. Expects the key 'Average' to exist for each data point.
     """
     if len(data_points) == 0:
         return 0
 
-    sum = 0
+    data_points_sum = 0
     for data_point in data_points:
-        sum = sum + data_point['Average']
-    avg = sum / len(data_points)
+        data_points_sum = data_points_sum + data_point['Average']
+    data_points_avg = data_points_sum / len(data_points)
 
-    return avg
+    return data_points_avg
+
+
+def get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, period_sec):
+    cpu_response = cw_client.get_metric_statistics(
+        Namespace='CWAgent',
+        Dimensions=[
+            {
+                'Name': 'AutoScalingGroupName',
+                'Value': 'PicSiteASG'
+            },
+            {
+                'Name': 'ImageId',
+                'Value': 'ami-0bdd1b937142e6961'
+            },
+            {
+                'Name': 'InstanceId',
+                'Value': '{}'.format(instance_id)
+            },
+            {
+                'Name': 'InstanceType',
+                'Value': 'm4.large'
+            },
+            {
+                'Name': 'cpu',
+                'Value': '{}'.format(cpu)
+            }
+        ],
+        MetricName='cpu_usage_idle',
+        StartTime=start_time,
+        EndTime=end_time,
+        Period=period_sec,
+        Statistics=[
+            'Average'
+        ],
+        Unit='Percent'
+    )
+
+    if cpu_response:
+        # 'Idle Percent' -> 'Utilization'
+        return (100 - get_mean_from_data_points(cpu_response['Datapoints'])) / 100
+
+    return None
+
+
+def get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, period_sec):
+    disk_response = cw_client.get_metric_statistics(
+        Namespace='CWAgent',
+        Dimensions=[
+            {
+                'Name': 'AutoScalingGroupName',
+                'Value': 'PicSiteASG'
+            },
+            {
+                'Name': 'ImageId',
+                'Value': 'ami-0bdd1b937142e6961'
+            },
+            {
+                'Name': 'InstanceId',
+                'Value': '{}'.format(instance_id)
+            },
+            {
+                'Name': 'InstanceType',
+                'Value': 'm4.large'
+            },
+            {
+                'Name': 'name',
+                'Value': 'xvda1'
+            }
+        ],
+        MetricName='diskio_io_time',
+        StartTime=start_time,
+        EndTime=end_time,
+        Period=period_sec,
+        Statistics=[
+            'Average'
+        ],
+        Unit='Milliseconds'
+    )
+
+    if disk_response:
+        # 'Milliseconds' -> 'Utilization'
+        return get_mean_from_data_points(disk_response['Datapoints']) / 1000 / period_sec
+
+    return None
 
 
 def put_metric_data_target(cw_client, target_value):
@@ -65,118 +154,72 @@ def run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper, cpu_lower, disk_
     )
 
     # Get ids from retrieved instances but exclude if not 'ok' status
+    current_epoch_seconds = calendar.timegm(time.gmtime())
+    waiting_instances = 0
     instance_id_list = list()
     for instance in instances:
-        response = ec2_client.describe_instance_status(
-            InstanceIds=['{}'.format(instance.id)]
-        )
-        instance_statuses = response['InstanceStatuses']
-        if len(instance_statuses) > 0 and instance_statuses[0]['InstanceStatus']['Status'] == 'ok':
-            instance_id_list.append(instance.id)
 
-    # Check if no running instances found
+        # Check if instance is older than the launch time delay
+        parsed_epoch_seconds = instance.launch_time.timestamp()
+        if current_epoch_seconds - parsed_epoch_seconds < LAUNCH_TIME_DELAY_SECONDS:
+            waiting_instances = waiting_instances + 1
+            continue
+
+        # Check if instance status is 'ok'
+        response = ec2_client.describe_instance_status(InstanceIds=['{}'.format(instance.id)])
+        instance_statuses = response['InstanceStatuses']
+        if len(instance_statuses) == 0 or instance_statuses[0]['InstanceStatus']['Status'] != 'ok':
+            waiting_instances = waiting_instances + 1
+            continue
+
+        instance_id_list.append(instance.id)
+
+    # Check if no ready instances found
     if len(instance_id_list) == 0:
-        logger.warning("No running instances found!")
+        logger.warning("No ready instances found! (%s instance(s) warming up)", str(waiting_instances))
         return
 
-    logger.info('Instances founds: %s', str(instance_id_list))
+    logger.info('Ready instances: %s (%s instance(s) warming up)', str(instance_id_list), str(waiting_instances))
 
-    max_cpu_util = 0
-    max_disk_util = 0
+    # Get average utilization for desired metrics
+    count_cpu_util = 0
+    count_disk_util = 0
+    sum_cpu_util = 0
+    sum_disk_util = 0
 
     for instance_id in instance_id_list:
-        # Take maximum utilization for a single cpu for each instance.
+        # Take average utilization for a single cpu for each instance.
         for cpu in ['cpu0', 'cpu1']:
-            cpu_response = cw_client.get_metric_statistics(
-                Namespace='CWAgent',
-                Dimensions=[
-                    {
-                        'Name': 'AutoScalingGroupName',
-                        'Value': 'PicSiteASG'
-                    },
-                    {
-                        'Name': 'ImageId',
-                        'Value': 'ami-0bdd1b937142e6961'
-                    },
-                    {
-                        'Name': 'InstanceId',
-                        'Value': '{}'.format(instance_id)
-                    },
-                    {
-                        'Name': 'InstanceType',
-                        'Value': 'm4.large'
-                    },
-                    {
-                        'Name': 'cpu',
-                        'Value': '{}'.format(cpu)
-                    }
-                ],
-                MetricName='cpu_usage_idle',
-                StartTime=start_time,
-                EndTime=end_time,
-                Period=period_sec,
-                Statistics=[
-                    'Average'
-                ],
-                Unit='Percent'
-            )
-            if cpu_response:
-                # 'Idle Percent * 100' -> 'Util Percent'
-                avg = (100 - get_mean_from_datapoints(cpu_response['Datapoints'])) / 100
-                max_cpu_util = max(max_cpu_util, avg)
+            cpu_util = get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, period_sec)
+            if cpu_util:
+                sum_cpu_util = sum_cpu_util + cpu_util
+                count_cpu_util = count_cpu_util + 1
 
-        # Take maximum utilization for the disk for each instance.
-        disk_response = cw_client.get_metric_statistics(
-            Namespace='CWAgent',
-            Dimensions=[
-                {
-                    'Name': 'AutoScalingGroupName',
-                    'Value': 'PicSiteASG'
-                },
-                {
-                    'Name': 'ImageId',
-                    'Value': 'ami-0bdd1b937142e6961'
-                },
-                {
-                    'Name': 'InstanceId',
-                    'Value': '{}'.format(instance_id)
-                },
-                {
-                    'Name': 'InstanceType',
-                    'Value': 'm4.large'
-                },
-                {
-                    'Name': 'name',
-                    'Value': 'xvda1'
-                }
-            ],
-            MetricName='diskio_io_time',
-            StartTime=start_time,
-            EndTime=end_time,
-            Period=period_sec,
-            Statistics=[
-                'Average'
-            ],
-            Unit='Milliseconds'
-        )
+        # Take average utilization for the disk for each instance.
+        disk_util = get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, period_sec)
+        if disk_util:
+            sum_disk_util = sum_disk_util + disk_util
+            count_disk_util = count_disk_util + 1
 
-        if disk_response:
-            # 'Milliseconds' -> 'Util Percent'
-            avg = get_mean_from_datapoints(disk_response['Datapoints']) / 1000 / period_sec
-            max_disk_util = max(max_disk_util, avg)
+    avg_cpu_util = sum_cpu_util / count_cpu_util if count_cpu_util > 0 else None
+    avg_disk_util = sum_disk_util / count_disk_util if count_disk_util > 0 else None
 
-    logger.info("Max CPU Utilization: %s", str(max_cpu_util))
-    logger.info("Max Disk Utilization: %s", str(max_disk_util))
+    logger.info("Avg CPU Utilization: %s", str(avg_cpu_util))
+    logger.info("Avg Disk Utilization: %s", str(avg_disk_util))
 
     # Calculate target based on upper and lower bounds
-    if max_cpu_util >= cpu_upper or max_disk_util >= disk_upper:
+    if avg_cpu_util and avg_cpu_util >= cpu_upper or avg_disk_util and avg_disk_util >= disk_upper:
         target = 1
-    elif len(instance_id_list) <= 1 or max_cpu_util > cpu_lower or max_disk_util > disk_lower:
+        target_msg = "Scale up"
+    elif (len(instance_id_list) <= 1 and waiting_instances == 0) or avg_cpu_util and avg_cpu_util > cpu_lower \
+            or avg_disk_util and avg_disk_util > disk_lower:
         target = 0.5
+        target_msg = "No action"
     else:
         target = 0
+        target_msg = "Scale down"
 
-    logger.info("Target: %s", str(target))
+    logger.info("Target: %s (%s)", str(target), str(target_msg))
 
     # Send target value
     put_metric_data_target(cw_client, target)
@@ -205,8 +248,8 @@ def main():
     disk_lower = disk_upper * 0.5
 
     # Default vars
-    period_sec = 30
-    window_minutes = 4
+    period_sec = PERIOD_SEC
+    window_minutes = WINDOW_MINUTES
 
     # Setup AWS resources
     region = "us-west-1"

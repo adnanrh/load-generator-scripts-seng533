@@ -78,7 +78,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
             then
                 ready="true"
             else
-                echo "Waiting for instance status = ok. Currently instance status = ${actual_status}"
+                echo "Waiting for instance_status = ok. Currently instance_status = ${actual_status}"
                 sleep 15
             fi
         else
