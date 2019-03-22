@@ -297,8 +297,7 @@ def get_logs(ec2, cw_client, args):
         image_size, num_users_a, num_users_b, num_users_c
     )
     with open(os.path.join(results_dir, filename), 'w') as csv_file:
-        fieldnames = ['test_id',
-                      'timepoint',
+        fieldnames = ['timepoint',
                       'cpu0_util',
                       'cpu1_util',
                       'mem_util',
