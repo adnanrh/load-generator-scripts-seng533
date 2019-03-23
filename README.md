@@ -31,4 +31,5 @@ Teardown:
 ## 'test_list' Notes
 
 - `test_duration` refers to the time to scale from 0 users to max users
-- `autoscaling_value` refers to type of policy. 0 is 'none', 1 is 'dynamic'
+- `autoscaling_value` refers to type of policy. 0 is 'off', 1 is 'on'
+- `num_instances` refers to number of instances for a test with no auto scaling. REQUIRED if `autoscaling_value` is 0

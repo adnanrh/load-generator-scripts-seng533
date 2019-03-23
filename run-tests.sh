@@ -47,10 +47,22 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     num_users_a=$(cat test_list.json | jq ".[$i].num_users_a")
     num_users_b=$(cat test_list.json | jq ".[$i].num_users_b")
     num_users_c=$(cat test_list.json | jq ".[$i].num_users_c")
-	test_id=${i}
 
     # init auto-scaling group
-    ./init_auto_scaling_group.sh
+    if [[ "${asg_type}" = "0" ]]
+    then
+        # no auto-scaling, get num instances and set
+        num_instances=$(cat test_list.json | jq -r ".[$i].num_instances")
+        if [[ "${num_instances}" = "null" ]]
+        then
+            echo "Must provide 'num_instances' field if 'asg_type' is set to 0. Skipping test ${i}"
+            continue
+        fi
+        ./init_auto_scaling_group.sh ${num_instances} ${num_instances} ${num_instances}
+    else
+        # auto-scaling
+        ./init_auto_scaling_group.sh
+    fi
 
     # wait until the group is ready
     ready="nope"
