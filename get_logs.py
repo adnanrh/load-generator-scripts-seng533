@@ -313,7 +313,7 @@ def get_logs(ec2, cw_client, args):
                       'disk_util',
                       'network_out',
                       'instance_id',
-                      'launch_time']
+                      'running_time_ms']
 
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
@@ -327,7 +327,7 @@ def get_logs(ec2, cw_client, args):
                 fieldnames[4]: logs_by_timepoint[i]['disk_util'],
                 fieldnames[5]: logs_by_timepoint[i]['network_out'],
                 fieldnames[6]: logs_by_timepoint[i]['instance_id'],
-                fieldnames[7]: logs_by_timepoint[i]['launch_time']
+                fieldnames[7]: test_end_time - logs_by_timepoint[i]['launch_time']
             }
             writer.writerow(data)
 
