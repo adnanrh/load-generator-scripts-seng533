@@ -33,7 +33,7 @@ fi
 load_generator_dns=$(aws ec2 describe-instances \
     --filters Name=instance-id,Values=i-015d0fb8593d8f75b Name=instance-state-name,Values=running \
     --query Reservations[0].Instances[0].PublicDnsName \
-    --output text)
+    --output text --region us-west-1)
 
 if [[ "${load_generator_dns}" = "None" ]]
 then
