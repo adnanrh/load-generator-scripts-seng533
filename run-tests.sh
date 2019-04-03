@@ -54,7 +54,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     if [[ "${asg_type}" = "0" ]]
     then
         # no auto-scaling, get num instances and set
-        num_instances=$(cat test_list.json | jq -r ".[$i].num_instances")
+        num_instances=$(cat ${config_file} | jq -r ".[$i].num_instances")
         if [[ "${num_instances}" = "null" ]]
         then
             echo "Must provide 'num_instances' field if 'asg_type' is set to 0. Skipping test ${i}"
