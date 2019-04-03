@@ -17,7 +17,8 @@ exit_fn () {
 # **************************************************************** 'initialize'
 
 period=30 # used by get_logs.py
-num_tests=$(cat test_list.json | jq "length")
+config_file=test_list2.json
+num_tests=$(cat ${config_file} | jq "length")
 
 # spin up load balancing infrastructure if it does not already exist.
 ./init_load_balancing.sh
@@ -39,14 +40,15 @@ mkdir -p ${results_dir}
 for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # read in test params from list of tests
-    asg_type=$(cat test_list.json | jq ".[$i].autoscaling_value")
-    cpu_max=$(cat test_list.json | jq ".[$i].cpu_utilization_param")
-    disk_max=$(cat test_list.json | jq ".[$i].disk_utilization_param")
-    duration=$(cat test_list.json | jq ".[$i].test_duration")
-    image_size=$(cat test_list.json | jq ".[$i].image_size")
-    num_users_a=$(cat test_list.json | jq ".[$i].num_users_a")
-    num_users_b=$(cat test_list.json | jq ".[$i].num_users_b")
-    num_users_c=$(cat test_list.json | jq ".[$i].num_users_c")
+    asg_type=$(cat ${config_file} | jq ".[$i].autoscaling_value")
+    cpu_max=$(cat ${config_file} | jq ".[$i].cpu_utilization_param")
+    disk_max=$(cat ${config_file} | jq ".[$i].disk_utilization_param")
+    duration=$(cat ${config_file} | jq ".[$i].test_duration")
+    image_size=$(cat ${config_file} | jq ".[$i].image_size")
+    num_users_a=$(cat ${config_file} | jq ".[$i].num_users_a")
+    num_users_b=$(cat ${config_file} | jq ".[$i].num_users_b")
+    num_users_c=$(cat ${config_file} | jq ".[$i].num_users_c")
+    test_id=${i}
 
     # init auto-scaling group
     if [[ "${asg_type}" = "0" ]]
