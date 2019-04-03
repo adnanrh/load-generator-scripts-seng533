@@ -17,7 +17,7 @@ exit_fn () {
 # **************************************************************** 'initialize'
 
 period=30 # used by get_logs.py
-config_file=test_list2.json
+config_file=test_list.json
 num_tests=$(cat ${config_file} | jq "length")
 
 # spin up load balancing infrastructure if it does not already exist.
