@@ -1,20 +1,22 @@
 #!/bin/bash
 
-# detach target groups from auto scaling group PicSiteASG
-asg_target_group_arns_json=$(aws autoscaling describe-load-balancer-target-groups --auto-scaling-group-name PicSiteASG | jq .LoadBalancerTargetGroups)
+asg_name=${1:-PicSiteASG}
+
+# detach target groups from auto scaling group asg_name
+asg_target_group_arns_json=$(aws autoscaling describe-load-balancer-target-groups --auto-scaling-group-name ${asg_name} | jq .LoadBalancerTargetGroups)
 if ! [[ "${asg_target_group_arns_json}" = "[]" ]]
 then
     asg_target_group_arns=$(echo ${asg_target_group_arns_json} | jq -rc ".[].LoadBalancerTargetGroupARN")
 
-    aws autoscaling detach-load-balancer-target-groups --auto-scaling-group-name PicSiteASG \
+    aws autoscaling detach-load-balancer-target-groups --auto-scaling-group-name ${asg_name} \
         --target-group-arns ${asg_target_group_arns}
 
     if [[ "${?}" = "0" ]]
     then
-        echo "Detached target groups from auto scaling group PicSiteASG with ARNs \"${asg_target_group_arns}\""
+        echo "Detached target groups from auto scaling group ${asg_name} with ARNs \"${asg_target_group_arns}\""
     fi
 else
-    echo "No target groups attached to auto scaling group PicSiteASG!"
+    echo "No target groups attached to auto scaling group ${asg_name}!"
 fi
 
 # delete load balancer PicSiteAppLB

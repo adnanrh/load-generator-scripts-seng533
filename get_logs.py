@@ -74,6 +74,8 @@ def get_logs(ec2, cw_client, args):
     # get params from args
     results_dir = args.results_dir
 
+    asg_name = args.asg_name
+
     test_id = args.boundaries[0]
     test_start_time = args.boundaries[1]
     test_end_time = args.boundaries[2]
@@ -87,10 +89,10 @@ def get_logs(ec2, cw_client, args):
     num_users_b = args.boundaries[10]
     num_users_c = args.boundaries[11]
 
-    # Fetch running instances from PicSiteASG autoscaling group
+    # Fetch running instances from asg_name autoscaling group
     instances = ec2.instances.filter(
             Filters=[
-                {'Name': 'tag:aws:autoscaling:groupName', 'Values': ['PicSiteASG']}
+                {'Name': 'tag:aws:autoscaling:groupName', 'Values': [asg_name]}
             ]
     )
     instance_id_list = [instance.id for instance in instances]
@@ -106,7 +108,7 @@ def get_logs(ec2, cw_client, args):
             Dimensions=[
                 {
                     'Name': 'AutoScalingGroupName',
-                    'Value': 'PicSiteASG'
+                    'Value': asg_name
                 },
                 {
                     'Name': 'ImageId',
@@ -152,7 +154,7 @@ def get_logs(ec2, cw_client, args):
             Dimensions=[
                 {
                     'Name': 'AutoScalingGroupName',
-                    'Value': 'PicSiteASG'
+                    'Value': asg_name
                 },
                 {
                     'Name': 'ImageId',
@@ -160,7 +162,7 @@ def get_logs(ec2, cw_client, args):
                 },
                 {
                     'Name': 'InstanceId',
-                    'Value': '{}'.format(instance_id)
+                    'Value': instance_id
                 },
                 {
                     'Name': 'InstanceType',
@@ -193,7 +195,7 @@ def get_logs(ec2, cw_client, args):
             Dimensions=[
                 {
                     'Name': 'AutoScalingGroupName',
-                    'Value': 'PicSiteASG'
+                    'Value': asg_name
                 },
                 {
                     'Name': 'ImageId',
@@ -201,7 +203,7 @@ def get_logs(ec2, cw_client, args):
                 },
                 {
                     'Name': 'InstanceId',
-                    'Value': '{}'.format(instance_id)
+                    'Value': instance_id
                 },
                 {
                     'Name': 'InstanceType',
@@ -233,7 +235,7 @@ def get_logs(ec2, cw_client, args):
             Dimensions=[
                 {
                     'Name': 'AutoScalingGroupName',
-                    'Value': 'PicSiteASG'
+                    'Value': asg_name
                 },
                 {
                     'Name': 'ImageId',
@@ -241,7 +243,7 @@ def get_logs(ec2, cw_client, args):
                 },
                 {
                     'Name': 'InstanceId',
-                    'Value': '{}'.format(instance_id)
+                    'Value': instance_id
                 },
                 {
                     'Name': 'InstanceType',
@@ -336,6 +338,8 @@ def main():
     # Parse arguments
     parser = ArgumentParser()
     parser.add_argument('results_dir')
+    parser.add_argument('asg_name', metavar='a', type=str,
+                        help="Supply the auto scaling group name")
     parser.add_argument('boundaries',
                         metavar=('test_id',
                                  'test_start_time',

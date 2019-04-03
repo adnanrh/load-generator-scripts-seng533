@@ -1,8 +1,12 @@
 #!/bin/bash
 
-alarm_monitor_script_pid=
+# Input vars
+config_file=${1:-test_list.json}
+asg_name=${2:-PicSiteASG}
 
 # Capture "ctrl + c" interruptions and kill the alarm monitor script if it is running
+alarm_monitor_script_pid=
+
 exit_fn () {
     trap SIGINT             # Restore signal handling for SIGINT
     if ! [[ "alarm_monitor_script_pid" = "" ]]
@@ -17,11 +21,10 @@ exit_fn () {
 # **************************************************************** 'initialize'
 
 period=30 # used by get_logs.py
-config_file=test_list.json
 num_tests=$(cat ${config_file} | jq "length")
 
 # spin up load balancing infrastructure if it does not already exist.
-./init_load_balancing.sh
+./init_load_balancing.sh ${asg_name}
 
 # grab new load balancer DNS name
 load_balancer_dns_name="$(aws elbv2 describe-load-balancers --names PicSiteAppLB | jq -r '.LoadBalancers[0].DNSName')"
@@ -71,13 +74,13 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     while [[ "$ready" = "nope" ]]
     do
         # Reset 'Target'
-        aws cloudwatch put-metric-data --namespace "PicSiteASG" \
+        aws cloudwatch put-metric-data --namespace "${asg_name}" \
             --metric-name "Target" \
             --value "0.5" \
-            --dimensions "AutoScalingGroupName=PicSiteASG"
+            --dimensions "AutoScalingGroupName=${asg_name}"
 
         group=$(aws autoscaling describe-auto-scaling-groups \
-                --auto-scaling-group-names PicSiteASG \
+                --auto-scaling-group-names ${asg_name} \
                 --region us-west-1)
         group_len=$(echo "$group" | jq ".AutoScalingGroups[0].Instances | length")
 
@@ -103,7 +106,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # setup auto-scaling monitor script and track pid to kill it later
     trap 'exit_fn' SIGINT
-    python3 asg_util_alarms.py "${cpu_max}" "${disk_max}" &
+    python3 asg_util_alarms.py "${asg_name}" "${cpu_max}" "${disk_max}" &
     alarm_monitor_script_pid=$!
 
     # run JMeter
@@ -128,7 +131,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     kill -s SIGINT ${alarm_monitor_script_pid} # seems to be global
 
     # get our logs
-    python3 get_logs.py "${results_dir}" \
+    python3 get_logs.py "${results_dir}" "${asg_name}" \
         "${test_id}"  \
         "${start_time}" \
         "${end_time}" \
@@ -146,10 +149,10 @@ done
 # ******************************************************************** clean up
 
 # shut down load balancing infrastructure
-./shutdown_load_balancing.sh
+./shutdown_load_balancing.sh ${asg_name}
 
 # scale down & disable auto-scaling
-./shutdown_auto_scaling_group.sh
+./shutdown_auto_scaling_group.sh ${asg_name}
 
 # a reminder
 echo "Please manually confirm that the auto-scaling group scaled down!"

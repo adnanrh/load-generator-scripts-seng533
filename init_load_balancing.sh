@@ -1,5 +1,7 @@
 #!/bin/bash
 
+asg_name=${1:-PicSiteASG}
+
 # check if load balancer PicSiteAppLB already exists before creating anything else
 load_balancer_arn_json=$(aws elbv2 describe-load-balancers --names PicSiteAppLB 2> /dev/null)
 if ! [[ "${load_balancer_arn_json}" = "" ]]
@@ -71,16 +73,16 @@ else
     exit $?
 fi
 
-# attach PicSiteTargetGroup to PicSiteASG
+# attach PicSiteTargetGroup to asg_name
 aws autoscaling attach-load-balancer-target-groups \
-    --auto-scaling-group-name PicSiteASG \
+    --auto-scaling-group-name ${asg_name} \
     --target-group-arns "${target_group_arn}"
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Attached target group PicSiteTargetGroup to the PicSiteASG auto scaling group"
+    echo "Attached target group PicSiteTargetGroup to the ${asg_name} auto scaling group"
 else
-    echo "Error encountered while attaching target group to PicSiteASG. Recommend running teardown script"
+    echo "Error encountered while attaching target group to ${asg_name}. Recommend running teardown script"
     exit $?
 fi
 
