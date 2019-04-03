@@ -23,13 +23,15 @@ def left_pad_logs_by_instance(logs_by_instance):
         for key, val in log.items():
             if key == 'instance_id':
                 continue
+            if key == 'launch_time':
+                continue
             if len(log[key]) > num_timepoints:
                 num_timepoints = len(log[key])
 
     # perform the padding on items with less timepoints
     for log in logs_by_instance:
         for key, val in log.items():
-            if key == 'instance_id' or len(log[key]) == num_timepoints:
+            if key == 'instance_id' or key == 'launch_time' or len(log[key]) == num_timepoints:
                 continue
             num_missing = num_timepoints - len(log[key])
             left_pad = [0 for _ in range(0, num_missing)]
@@ -54,6 +56,7 @@ def convert_logs_by_instance_to_per_timepoint(logs_by_instance):
                 'disk_util': padded_logs[i]['disk_utils'][j],
                 'mem_util': padded_logs[i]['mem_utils'][j],
                 'network_out': padded_logs[i]['network_out_values'][j],
+                'launch_time': padded_logs[i]['launch_time'],
                 'timepoint': j
             })
     return logs_by_timepoint
@@ -91,8 +94,11 @@ def get_logs(ec2, cw_client, args):
             ]
     )
     instance_id_list = [instance.id for instance in instances]
+    instance_launch_times = [instance.launch_time.timestamp() for instance in instances]
 
     logs_by_instance = []
+
+    launch_time_index = 0
 
     for instance_id in instance_id_list:
         cpu0_response = cw_client.get_metric_statistics(
@@ -287,8 +293,11 @@ def get_logs(ec2, cw_client, args):
             'cpu1_utils': cpu1_utils,
             'disk_utils': disk_utils,
             'mem_utils': mem_utils,
-            'network_out_values': network_out_values
+            'network_out_values': network_out_values,
+            'launch_time': instance_launch_times[launch_time_index]
         })
+
+        launch_time_index = launch_time_index + 1
 
     logs_by_timepoint = convert_logs_by_instance_to_per_timepoint(logs_by_instance)
 
@@ -303,7 +312,8 @@ def get_logs(ec2, cw_client, args):
                       'mem_util',
                       'disk_util',
                       'network_out',
-                      'instance_id']
+                      'instance_id',
+                      'running_time_ms']
 
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
 
@@ -316,7 +326,8 @@ def get_logs(ec2, cw_client, args):
                 fieldnames[3]: logs_by_timepoint[i]['mem_util'],
                 fieldnames[4]: logs_by_timepoint[i]['disk_util'],
                 fieldnames[5]: logs_by_timepoint[i]['network_out'],
-                fieldnames[6]: logs_by_timepoint[i]['instance_id']
+                fieldnames[6]: logs_by_timepoint[i]['instance_id'],
+                fieldnames[7]: test_end_time - logs_by_timepoint[i]['launch_time']
             }
             writer.writerow(data)
 
