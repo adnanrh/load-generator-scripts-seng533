@@ -126,18 +126,17 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     # run JMeter
     echo "Running JMeter test ..."
     start_time=$(date +%s) # ms since epoch utc
-    sleep 15
-#    /home/ubuntu/apache-jmeter-5.1/bin/jmeter -n \
-#        -t jmeter_tests/Project_Test_Plan.jmx \
-#        -JusersA="${num_users_a}" \
-#        -JusersB="${num_users_b}" \
-#        -JusersC="${num_users_c}" \
-#        -Jduration="${duration}" \
-#        -JLoadBalancerDNS="${load_balancer_dns_name}" \
-#        -JImageSize="${image_size}" \
-#        -JTestID="${test_id}" \
-#        -JResultsDir="${results_dir}" \
-#        -l ${results_dir}/testresults_${test_id}.jtl
+    /home/ubuntu/apache-jmeter-5.1/bin/jmeter -n \
+        -t jmeter_tests/Project_Test_Plan.jmx \
+        -JusersA="${num_users_a}" \
+        -JusersB="${num_users_b}" \
+        -JusersC="${num_users_c}" \
+        -Jduration="${duration}" \
+        -JLoadBalancerDNS="${load_balancer_dns_name}" \
+        -JImageSize="${image_size}" \
+        -JTestID="${test_id}" \
+        -JResultsDir="${results_dir}" \
+        -l ${results_dir}/testresults_${test_id}.jtl
     end_time=$(date +%s) # ms since epoch utc
     echo "Finished running JMeter test."
 
