@@ -14,8 +14,55 @@ exit_fn () {
     exit                    # Then exit script.
 }
 
+# Wait until auto scaling group has desired number of instances. While waiting, will set target value to '0.5'.
+wait_for_desired_instances() {
+    desired_instances=$1
+
+    ready="nope"
+    while [[ "${ready}" = "nope" ]]
+    do
+        # Reset 'Target'
+        aws cloudwatch put-metric-data --namespace "PicSiteASG" \
+            --metric-name "Target" \
+            --value "0.5" \
+            --dimensions "AutoScalingGroupName=PicSiteASG"
+
+        group=$(aws autoscaling describe-auto-scaling-groups \
+                --auto-scaling-group-names PicSiteASG \
+                --region us-west-1)
+        group_len=$(echo "$group" | jq ".AutoScalingGroups[0].Instances | length")
+
+        if [[ "${group_len}" = "${desired_instances}" ]]
+        then
+            ready="true"
+            if [[ "${group_len}" != "0" ]]
+            then
+                instance_id_list=$(echo ${group} | jq -r .AutoScalingGroups[0].Instances[].InstanceId)
+                for instance_id in ${instance_id_list}
+                do
+                    status=$(aws ec2 describe-instance-status \
+                            --instance-id ${instance_id} \
+                            --region us-west-1)
+                    actual_status=$(echo ${status} | jq -r .InstanceStatuses[0].InstanceStatus.Status)
+                    if [[ "${actual_status}" != "ok" ]]
+                    then
+                        ready="nope"
+                        echo "Waiting for status = ok for \"${instance_id}\". Currently status = ${actual_status}"
+                        sleep 15
+                    fi
+                done
+            fi
+        else
+            echo "Waiting for num_instances = ${desired_instances}. Currently num_instances = ${group_len}"
+            sleep 15
+        fi
+    done
+}
+
 # **************************************************************** 'initialize'
 
+default_min_instances=1
+default_max_instances=5
 period=30 # used by get_logs.py
 config_file=test_list.json
 num_tests=$(cat ${config_file} | jq "length")
@@ -63,43 +110,13 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
         ./init_auto_scaling_group.sh ${num_instances} ${num_instances} ${num_instances}
     else
         # auto-scaling
-        ./init_auto_scaling_group.sh
+        num_instances=1
+        ./init_auto_scaling_group.sh ${default_min_instances} ${default_max_instances} ${num_instances}
     fi
 
     # wait until the group is ready
-    ready="nope"
-    while [[ "$ready" = "nope" ]]
-    do
-        # Reset 'Target'
-        aws cloudwatch put-metric-data --namespace "PicSiteASG" \
-            --metric-name "Target" \
-            --value "0.5" \
-            --dimensions "AutoScalingGroupName=PicSiteASG"
-
-        group=$(aws autoscaling describe-auto-scaling-groups \
-                --auto-scaling-group-names PicSiteASG \
-                --region us-west-1)
-        group_len=$(echo "$group" | jq ".AutoScalingGroups[0].Instances | length")
-
-        if [[ "${group_len}" = 1 ]]
-        then
-            instance_id=$(echo ${group} | jq -r .AutoScalingGroups[0].Instances[0].InstanceId)
-            status=$(aws ec2 describe-instance-status \
-                    --instance-id ${instance_id} \
-                    --region us-west-1)
-            actual_status=$(echo ${status} | jq -r .InstanceStatuses[0].InstanceStatus.Status)
-            if [[ "${actual_status}" = "ok" ]]
-            then
-                ready="true"
-            else
-                echo "Waiting for instance_status = ok. Currently instance_status = ${actual_status}"
-                sleep 15
-            fi
-        else
-            echo "Waiting for num_instances = 1. Currently num_instances = ${group_len}"
-            sleep 15
-        fi
-    done
+    echo "Waiting for desired starting instances (${num_instances}) for test ..."
+    wait_for_desired_instances ${num_instances}
 
     # setup auto-scaling monitor script and track pid to kill it later
     trap 'exit_fn' SIGINT
@@ -141,15 +158,20 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
         "${num_users_a}" \
         "${num_users_b}" \
         "${num_users_c}"
+
+    # clean-up remaining instances
+    echo "Cleaning up instances after test ..."
+    ./shutdown_auto_scaling_group.sh
+    wait_for_desired_instances 0
 done
 
 # ******************************************************************** clean up
 
-# shut down load balancing infrastructure
-./shutdown_load_balancing.sh
-
 # scale down & disable auto-scaling
 ./shutdown_auto_scaling_group.sh
+
+# shut down load balancing infrastructure
+./shutdown_load_balancing.sh
 
 # a reminder
 echo "Please manually confirm that the auto-scaling group scaled down!"
