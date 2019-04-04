@@ -1,9 +1,13 @@
 #!/bin/bash
 
-asg_name=${1:-PicSiteASG}
+asg_suffix=${1}
 
-# check if load balancer PicSiteAppLB already exists before creating anything else
-load_balancer_arn_json=$(aws elbv2 describe-load-balancers --names PicSiteAppLB 2> /dev/null)
+asg_name="PicSiteASG${asg_suffix}"
+lb_name="PicSiteAppLB${asg_suffix}"
+tg_name="PicSiteTargetGroup${asg_suffix}"
+
+# check if load balancer PicSiteAppLBx already exists before creating anything else
+load_balancer_arn_json=$(aws elbv2 describe-load-balancers --names ${lb_name} 2> /dev/null)
 if ! [[ "${load_balancer_arn_json}" = "" ]]
 then
     echo "Load balancer already exists with ARN: $(echo ${load_balancer_arn_json} | jq -r '.LoadBalancers[0].LoadBalancerArn')"
@@ -11,9 +15,9 @@ then
     exit
 fi
 
-# create load balancer PicSiteAppLB
+# create load balancer PicSiteAppLBx
 load_balancer_arn=$(aws elbv2 create-load-balancer \
-    --name "PicSiteAppLB" \
+    --name "${lb_name}" \
     --type application \
     --security-groups "sg-070a315fadd1bc749" \
     --subnets "subnet-5ecdb207" "subnet-48f0ce2d" \
@@ -21,15 +25,15 @@ load_balancer_arn=$(aws elbv2 create-load-balancer \
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Created load balancer PicSiteAppLB with ARN \"${load_balancer_arn}\""
+    echo "Created load balancer ${lb_name} with ARN \"${load_balancer_arn}\""
 else
-    echo "Error encountered while creating load balancer"
+    echo "Error encountered while creating load balancer ${lb_name}"
     exit $?
 fi
 
-# create target group PicSiteTargetGroup for PicSiteAppLB
+# create target group PicSiteTargetGroupX for PicSiteAppLBx
 target_group_arn=$(aws elbv2 create-target-group \
-    --name "PicSiteTargetGroup" \
+    --name "${tg_name}" \
     --protocol HTTP \
     --port 80 \
     --vpc-id vpc-52612337 \
@@ -38,13 +42,13 @@ target_group_arn=$(aws elbv2 create-target-group \
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Created target group PicSiteTargetGroup with ARN \"${target_group_arn}\""
+    echo "Created target group ${tg_name} with ARN \"${target_group_arn}\""
 else
-    echo "Error encountered while creating target group. Recommend running teardown script"
+    echo "Error encountered while creating target group ${tg_name}. Recommend running teardown script"
     exit $?
 fi
 
-# set PicSiteTargetGroup's deregistration delay to 30 seconds (connection drain time)
+# set PicSiteTargetGroupX's de-registration delay to 30 seconds (connection drain time)
 aws elbv2 modify-target-group-attributes \
     --target-group-arn ${target_group_arn} \
     --attributes Key=deregistration_delay.timeout_seconds,Value=30 \
@@ -52,13 +56,13 @@ aws elbv2 modify-target-group-attributes \
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Set target group PicSiteTargetGroup deregistration delay to 30 seconds"
+    echo "Set target group ${tg_name} de-registration delay to 30 seconds"
 else
-    echo "Error encountered while setting PicSiteTargetGroup's deregistration delay. Recommend running teardown script"
+    echo "Error encountered while setting ${tg_name}'s de-registration delay. Recommend running teardown script"
     exit $?
 fi
 
-# create listener for PicSiteAppLB to forward traffic to PicSiteTargetGroup
+# create listener for PicSiteAppLBx to forward traffic to PicSiteTargetGroupX
 aws elbv2 create-listener \
     --load-balancer-arn ${load_balancer_arn} \
     --protocol HTTP --port 80 \
@@ -67,22 +71,22 @@ aws elbv2 create-listener \
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Created listener for load balancer PicSiteAppLB pointing to PicSiteTargetGroup"
+    echo "Created listener for load balancer ${lb_name} pointing to ${tg_name}"
 else
     echo "Error encountered while creating listener for load balancer. Recommend running teardown script"
     exit $?
 fi
 
-# attach PicSiteTargetGroup to asg_name
+# attach PicSiteTargetGroupX to the auto scaling group
 aws autoscaling attach-load-balancer-target-groups \
     --auto-scaling-group-name ${asg_name} \
     --target-group-arns "${target_group_arn}"
 
 if [[ "${?}" = "0" ]]
 then
-    echo "Attached target group PicSiteTargetGroup to the ${asg_name} auto scaling group"
+    echo "Attached target group ${tg_name} to the ${asg_name} auto scaling group"
 else
-    echo "Error encountered while attaching target group to ${asg_name}. Recommend running teardown script"
+    echo "Error encountered while attaching target group ${tg_name} to ${asg_name}. Recommend running teardown script"
     exit $?
 fi
 

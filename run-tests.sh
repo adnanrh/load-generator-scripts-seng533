@@ -2,7 +2,9 @@
 
 # Input vars
 config_file=${1:-test_list.json}
-asg_name=${2:-PicSiteASG}
+asg_suffix=${2}
+
+asg_name="PicSiteASG${asg_suffix}"
 
 # Capture "ctrl + c" interruptions and kill the alarm monitor script if it is running
 alarm_monitor_script_pid=
@@ -71,7 +73,7 @@ period=30 # used by get_logs.py
 num_tests=$(cat ${config_file} | jq "length")
 
 # spin up load balancing infrastructure if it does not already exist.
-./init_load_balancing.sh ${asg_name}
+./init_load_balancing.sh ${asg_suffix}
 
 # grab new load balancer DNS name
 load_balancer_dns_name="$(aws elbv2 describe-load-balancers --names PicSiteAppLB | jq -r '.LoadBalancers[0].DNSName')"
@@ -164,17 +166,17 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # clean-up remaining instances
     echo "Cleaning up instances after test ..."
-    ./shutdown_auto_scaling_group.sh ${asg_name}
+    ./shutdown_auto_scaling_group.sh ${asg_suffix}
     wait_for_desired_instances 0
 done
 
 # ******************************************************************** clean up
 
 # scale down & disable auto-scaling
-./shutdown_auto_scaling_group.sh ${asg_name}
+./shutdown_auto_scaling_group.sh ${asg_suffix}
 
 # shut down load balancing infrastructure
-./shutdown_load_balancing.sh ${asg_name}
+./shutdown_load_balancing.sh ${asg_suffix}
 
 # a reminder
 echo "Please manually confirm that the auto-scaling group scaled down!"
