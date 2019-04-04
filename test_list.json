@@ -7,7 +7,8 @@
         "image_size": 5,
         "num_users_a": 96,
         "num_users_b": 240,
-        "num_users_c": 48
+        "num_users_c": 48,
+        "num_instances": 1
     },
     {
         "test_duration": 1800,
@@ -17,7 +18,8 @@
         "image_size": 5,
         "num_users_a": 96,
         "num_users_b": 240,
-        "num_users_c": 48
+        "num_users_c": 48,
+        "num_instances": 1
     },
     {
         "test_duration": 1800,
@@ -27,6 +29,7 @@
         "image_size": 5,
         "num_users_a": 96,
         "num_users_b": 240,
-        "num_users_c": 48
+        "num_users_c": 48,
+        "num_instances": 1
     }
 ]
