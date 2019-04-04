@@ -131,6 +131,11 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     # run JMeter
     echo "Running JMeter test ..."
     start_time=$(date +%s) # ms since epoch utc
+    stop_delay=$((${duration}+60))
+
+    ./stop_jmeter_threads_after_delay.sh ${stop_delay} &
+    stop_jmeter_pid=$!
+
     /home/ubuntu/apache-jmeter-5.1/bin/jmeter -n \
         -t jmeter_tests/Project_Test_Plan.jmx \
         -JusersA="${num_users_a}" \
@@ -143,6 +148,9 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
         -JResultsDir="${results_dir}" \
         -l ${results_dir}/testresults_${test_id}.jtl
     end_time=$(date +%s) # ms since epoch utc
+
+    kill ${stop_jmeter_pid}
+
     echo "Finished running JMeter test."
 
     # stop auto-scaling monitoring script since it needs new params for next test
