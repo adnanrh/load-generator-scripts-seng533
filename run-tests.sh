@@ -100,23 +100,35 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     num_users_a=$(cat ${config_file} | jq ".[$i].num_users_a")
     num_users_b=$(cat ${config_file} | jq ".[$i].num_users_b")
     num_users_c=$(cat ${config_file} | jq ".[$i].num_users_c")
+    num_instances=$(cat ${config_file} | jq ".[$i].num_instances")
+    scale_down_size=$(cat ${config_file} | jq ".[$i].scale_down_size")
+    scale_up_size=$(cat ${config_file} | jq ".[$i].scale_up_size")
     test_id=${i}
+
+    # Set defaults
+    if [[ "${num_instances}" = "null" ]]; then num_instances=1; fi
+    if [[ "${scale_down_size}" = "null" ]]; then scale_down_size=1; fi
+    if [[ "${scale_up_size}" = "null" ]]; then scale_up_size=1; fi
+
+    # set scale down and scale up step sizes
+    aws autoscaling put-scaling-policy --auto-scaling-group-name ${asg_name} \
+        --policy-name "Target Utilization Scale Down" \
+        --adjustment-type ChangeInCapacity \
+        --scaling-adjustment ${scale_down_size}
+
+    aws autoscaling put-scaling-policy --auto-scaling-group-name ${asg_name} \
+        --policy-name "Target Utilization Scale Up" \
+        --adjustment-type ChangeInCapacity \
+        --scaling-adjustment ${scale_up_size}
 
     # init auto-scaling group
     if [[ "${asg_type}" = "0" ]]
     then
-        # no auto-scaling, get num instances and set
-        num_instances=$(cat ${config_file} | jq -r ".[$i].num_instances")
-        if [[ "${num_instances}" = "null" ]]
-        then
-            echo "Must provide 'num_instances' field if 'asg_type' is set to 0. Skipping test ${i}"
-            continue
-        fi
-        ./init_auto_scaling_group.sh ${num_instances} ${num_instances} ${num_instances}
+        # no auto-scaling
+        ./init_auto_scaling_group.sh ${num_instances} ${num_instances} ${num_instances} ${asg_suffix}
     else
         # auto-scaling
-        num_instances=1
-        ./init_auto_scaling_group.sh ${default_min_instances} ${default_max_instances} ${num_instances}
+        ./init_auto_scaling_group.sh ${default_min_instances} ${default_max_instances} ${num_instances} ${asg_suffix}
     fi
 
     # wait until the group is ready
