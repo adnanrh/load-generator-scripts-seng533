@@ -33,13 +33,14 @@ def get_mean_from_data_points(data_points):
     return data_points_avg
 
 
-def get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, period_sec):
+def get_metric_data_cpu_util(cw_client, instance_id: str, cpu: str, start_time: datetime, end_time: datetime,
+                             period_sec: int, asg_name: str):
     cpu_response = cw_client.get_metric_statistics(
         Namespace='CWAgent',
         Dimensions=[
             {
                 'Name': 'AutoScalingGroupName',
-                'Value': 'PicSiteASG'
+                'Value': asg_name
             },
             {
                 'Name': 'ImageId',
@@ -47,7 +48,7 @@ def get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, 
             },
             {
                 'Name': 'InstanceId',
-                'Value': '{}'.format(instance_id)
+                'Value': instance_id
             },
             {
                 'Name': 'InstanceType',
@@ -55,7 +56,7 @@ def get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, 
             },
             {
                 'Name': 'cpu',
-                'Value': '{}'.format(cpu)
+                'Value': cpu
             }
         ],
         MetricName='cpu_usage_idle',
@@ -75,13 +76,14 @@ def get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, 
     return None
 
 
-def get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, period_sec):
+def get_metric_data_disk_util(cw_client, instance_id: str, start_time: datetime, end_time: datetime, period_sec: int,
+                              asg_name: str):
     disk_response = cw_client.get_metric_statistics(
         Namespace='CWAgent',
         Dimensions=[
             {
                 'Name': 'AutoScalingGroupName',
-                'Value': 'PicSiteASG'
+                'Value': asg_name
             },
             {
                 'Name': 'ImageId',
@@ -89,7 +91,7 @@ def get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, peri
             },
             {
                 'Name': 'InstanceId',
-                'Value': '{}'.format(instance_id)
+                'Value': instance_id
             },
             {
                 'Name': 'InstanceType',
@@ -117,16 +119,16 @@ def get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, peri
     return None
 
 
-def put_metric_data_target(cw_client, target_value):
+def put_metric_data_target(cw_client, target_value: float, asg_name: str):
     cw_client.put_metric_data(
-        Namespace='PicSiteASG',
+        Namespace=asg_name,
         MetricData=[
             {
                 'MetricName': 'Target',
                 'Dimensions': [
                     {
                         'Name': 'AutoScalingGroupName',
-                        'Value': 'PicSiteASG'
+                        'Value': asg_name
                     },
                 ],
                 'Timestamp': datetime.utcnow(),
@@ -137,19 +139,19 @@ def put_metric_data_target(cw_client, target_value):
     )
 
 
-def run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper, cpu_lower, disk_upper, disk_lower, period_sec,
-                         window_minutes):
+def run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper: float, cpu_lower: float, disk_upper: float,
+                         disk_lower: float, period_sec: int, window_minutes: int, asg_name: str):
     """
 
     """
     start_time = datetime.utcnow() - timedelta(minutes=window_minutes)
     end_time = datetime.utcnow()
 
-    # Fetch running instances from PicSiteASG autoscaling group
+    # Fetch running instances from asg_name auto scaling group
     instances = ec2.instances.filter(
         Filters=[
             {'Name': 'instance-state-name', 'Values': ['running']},
-            {'Name': 'tag:aws:autoscaling:groupName', 'Values': ['PicSiteASG']}
+            {'Name': 'tag:aws:autoscaling:groupName', 'Values': [asg_name]}
         ]
     )
 
@@ -190,13 +192,13 @@ def run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper, cpu_lower, disk_
     for instance_id in instance_id_list:
         # Take average utilization for a single cpu for each instance.
         for cpu in ['cpu0', 'cpu1']:
-            cpu_util = get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, period_sec)
+            cpu_util = get_metric_data_cpu_util(cw_client, instance_id, cpu, start_time, end_time, period_sec, asg_name)
             if cpu_util:
                 sum_cpu_util = sum_cpu_util + cpu_util
                 count_cpu_util = count_cpu_util + 1
 
         # Take average utilization for the disk for each instance.
-        disk_util = get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, period_sec)
+        disk_util = get_metric_data_disk_util(cw_client, instance_id, start_time, end_time, period_sec, asg_name)
         if disk_util:
             sum_disk_util = sum_disk_util + disk_util
             count_disk_util = count_disk_util + 1
@@ -222,13 +224,13 @@ def run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper, cpu_lower, disk_
     logger.info("Target: %s (%s)", str(target), str(target_msg))
 
     # Send target value
-    put_metric_data_target(cw_client, target)
+    put_metric_data_target(cw_client, target, asg_name)
 
 
-def signal_handler(cw_client):
+def signal_handler(cw_client, asg_name):
     # Reset Target metric
     print("ASG Util Alarms script exiting, sending target value 0.5 to Cloudwatch ...")
-    put_metric_data_target(cw_client, 0.5)
+    put_metric_data_target(cw_client, 0.5, asg_name)
     print("ASG Util Alarms script says \"Good bye.\"")
     sys.exit(0)
 
@@ -236,12 +238,15 @@ def signal_handler(cw_client):
 def main():
     # Parse arguments
     parser = ArgumentParser()
+    parser.add_argument('asg_name', metavar='a', type=str,
+                        help="Supply the auto scaling group name")
     parser.add_argument('boundaries', metavar=('cpu_upper', 'disk_upper'), type=int, nargs=2,
                         help="Supply 'cpu_upper' and 'disk_upper' bounds (0-100)")
     args = parser.parse_args()
 
-    cpu_upper = args.boundaries[0] / 100
-    disk_upper = args.boundaries[1] / 100
+    asg_name = args.asg_name
+    cpu_upper = float(args.boundaries[0] / 100)
+    disk_upper = float(args.boundaries[1] / 100)
 
     # Set lower bounds based on percentage of upper bounds
     cpu_lower = cpu_upper * 0.5
@@ -258,8 +263,8 @@ def main():
     ec2_client = boto3.client('ec2', region_name=region)
 
     # Catch SIGINT & SIGINT
-    def signal_handler_wrapper(sig, frame):
-        signal_handler(cw_client)
+    def signal_handler_wrapper(_sig, _frame):
+        signal_handler(cw_client, asg_name)
 
     signal.signal(signal.SIGINT, signal_handler_wrapper)
     signal.signal(signal.SIGTERM, signal_handler_wrapper)
@@ -268,7 +273,7 @@ def main():
     logging.info("Starting ASG Util Alarms script ...")
     while True:
         run_scaling_notifier(ec2, ec2_client, cw_client, cpu_upper, cpu_lower, disk_upper, disk_lower, period_sec,
-                             window_minutes)
+                             window_minutes, asg_name)
         time.sleep(15)
 
 

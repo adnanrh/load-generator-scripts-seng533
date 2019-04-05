@@ -1,8 +1,14 @@
 #!/bin/bash
 
-alarm_monitor_script_pid=
+# Input vars
+config_file=${1:-test_list.json}
+asg_suffix=${2}
+
+asg_name="PicSiteASG${asg_suffix}"
 
 # Capture "ctrl + c" interruptions and kill the alarm monitor script if it is running
+alarm_monitor_script_pid=
+
 exit_fn () {
     trap SIGINT             # Restore signal handling for SIGINT
     if ! [[ "alarm_monitor_script_pid" = "" ]]
@@ -22,13 +28,13 @@ wait_for_desired_instances() {
     while [[ "${ready}" = "nope" ]]
     do
         # Reset 'Target'
-        aws cloudwatch put-metric-data --namespace "PicSiteASG" \
+        aws cloudwatch put-metric-data --namespace "${asg_name}" \
             --metric-name "Target" \
             --value "0.5" \
-            --dimensions "AutoScalingGroupName=PicSiteASG"
+            --dimensions "AutoScalingGroupName=${asg_name}"
 
         group=$(aws autoscaling describe-auto-scaling-groups \
-                --auto-scaling-group-names PicSiteASG \
+                --auto-scaling-group-names ${asg_name} \
                 --region us-west-1)
         group_len=$(echo "$group" | jq ".AutoScalingGroups[0].Instances | length")
 
@@ -64,11 +70,10 @@ wait_for_desired_instances() {
 default_min_instances=1
 default_max_instances=5
 period=30 # used by get_logs.py
-config_file=test_list.json
 num_tests=$(cat ${config_file} | jq "length")
 
 # spin up load balancing infrastructure if it does not already exist.
-./init_load_balancing.sh
+./init_load_balancing.sh ${asg_suffix}
 
 # grab new load balancer DNS name
 load_balancer_dns_name="$(aws elbv2 describe-load-balancers --names PicSiteAppLB | jq -r '.LoadBalancers[0].DNSName')"
@@ -120,8 +125,13 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # setup auto-scaling monitor script and track pid to kill it later
     trap 'exit_fn' SIGINT
-    python3 asg_util_alarms.py "${cpu_max}" "${disk_max}" &
+    python3 asg_util_alarms.py "${asg_name}" "${cpu_max}" "${disk_max}" &
     alarm_monitor_script_pid=$!
+
+    # setup jmeter thread stop script and track pid to kill it later
+    stop_delay=$((${duration} + 60))
+    ./stop_jmeter_threads_after_delay.sh ${stop_delay} &
+    stop_jmeter_pid=$!
 
     # run JMeter
     echo "Running JMeter test ..."
@@ -140,12 +150,15 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
     end_time=$(date +%s) # ms since epoch utc
     echo "Finished running JMeter test."
 
+    # kill jmeter stop thread if it has not executed yet
+    kill ${stop_jmeter_pid}
+
     # stop auto-scaling monitoring script since it needs new params for next test
     trap SIGINT
     kill -s SIGINT ${alarm_monitor_script_pid} # seems to be global
 
     # get our logs
-    python3 get_logs.py "${results_dir}" \
+    python3 get_logs.py "${results_dir}" "${asg_name}" \
         "${test_id}"  \
         "${start_time}" \
         "${end_time}" \
@@ -161,17 +174,17 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # clean-up remaining instances
     echo "Cleaning up instances after test ..."
-    ./shutdown_auto_scaling_group.sh
+    ./shutdown_auto_scaling_group.sh ${asg_suffix}
     wait_for_desired_instances 0
 done
 
 # ******************************************************************** clean up
 
 # scale down & disable auto-scaling
-./shutdown_auto_scaling_group.sh
+./shutdown_auto_scaling_group.sh ${asg_suffix}
 
 # shut down load balancing infrastructure
-./shutdown_load_balancing.sh
+./shutdown_load_balancing.sh ${asg_suffix}
 
 # a reminder
 echo "Please manually confirm that the auto-scaling group scaled down!"
