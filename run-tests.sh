@@ -107,7 +107,7 @@ for i in $(seq 0 $(expr ${num_tests} - 1)) ; do
 
     # Set defaults
     if [[ "${num_instances}" = "null" ]]; then num_instances=1; fi
-    if [[ "${scale_down_size}" = "null" ]]; then scale_down_size=1; fi
+    if [[ "${scale_down_size}" = "null" ]]; then scale_down_size=-1; fi
     if [[ "${scale_up_size}" = "null" ]]; then scale_up_size=1; fi
 
     # set scale down and scale up step sizes
